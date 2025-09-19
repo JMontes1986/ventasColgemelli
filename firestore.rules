@@ -1,19 +1,12 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allows public read access to products for the self-service page,
-    // and allows write access for the admin panel.
-    // In a real app, write access should be restricted to authenticated admins.
-    match /products/{productId} {
+    
+    // WARNING: These rules are insecure and should not be used in production.
+    // They are set to permissive for development and debugging purposes.
+    match /{document=**} {
       allow read, write: if true;
-    }
-
-    // Allows anyone to create a purchase, and allows anyone to read any purchase.
-    // In a real app, read access should be restricted so users can only see their own purchases.
-    match /purchases/{purchaseId} {
-       allow read, write: if true;
     }
   }
 }
