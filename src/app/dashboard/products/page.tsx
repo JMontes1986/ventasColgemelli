@@ -45,6 +45,7 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
+    const [imageUrl, setImageUrl] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,8 +53,7 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
             name,
             price: parseFloat(price),
             stock: parseInt(stock, 10),
-            // TODO: Handle image uploads properly
-            imageUrl: 'https://picsum.photos/seed/newproduct/400/400',
+            imageUrl: imageUrl || 'https://picsum.photos/seed/newproduct/400/400',
             imageHint: 'new product'
         };
 
@@ -65,6 +65,7 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
             setName('');
             setPrice('');
             setStock('');
+            setImageUrl('');
         } catch (error) {
             console.error("Error adding product:", error);
             toast({ variant: "destructive", title: "Error", description: "No se pudo añadir el producto." });
@@ -102,10 +103,8 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
                             <Input id="product-stock" type="number" placeholder="100" value={stock} onChange={e => setStock(e.target.value)} required/>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="product-image">Imagen del Producto</Label>
-                            <div className="flex items-center gap-2">
-                                <Input id="product-image" type="file" className="flex-1" />
-                            </div>
+                            <Label htmlFor="product-image-url">URL de la Imagen</Label>
+                            <Input id="product-image-url" placeholder="https://ejemplo.com/imagen.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
                         </div>
                     </div>
                 </form>
