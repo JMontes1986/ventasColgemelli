@@ -10,6 +10,10 @@ export type User = {
   avatarUrl: string;
 };
 
+export type NewUser = Omit<User, 'id'>;
+export type UpdatableUser = Partial<Omit<User, 'id' | 'email'>>;
+
+
 export type TicketStatus = 'available' | 'sold' | 'redeemed' | 'void';
 
 export type Ticket = {
