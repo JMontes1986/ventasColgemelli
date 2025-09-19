@@ -223,7 +223,7 @@ export default function ProductsPage() {
         title="Productos"
         description="Gestionar el inventario de productos para la venta."
       >
-        <RoleGate allowedRoles={['admin']}>
+        <RoleGate allowedRoles={['admin', 'cashier']}>
            {!hasSeeded && (
             <Button variant="outline" onClick={handleSeedDatabase}>
                 <Database className="mr-2 h-4 w-4" />
@@ -240,7 +240,7 @@ export default function ProductsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {products.map((product) => (
             <Card key={product.id} className="overflow-hidden relative group">
-                <RoleGate allowedRoles={['admin']}>
+                <RoleGate allowedRoles={['admin', 'cashier']}>
                     <div className="absolute top-2 right-2 z-10">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
