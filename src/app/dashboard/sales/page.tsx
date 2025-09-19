@@ -30,6 +30,7 @@ import { addPurchase, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useMockAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
 
 type CartItem = {
   id: string;
@@ -53,7 +54,7 @@ export default function SalesPage() {
     return new Map(products.map(p => [p.id, p]));
   }, [products]);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setIsLoading(true);
     try {
         const fetchedProducts = await getProducts();
@@ -64,11 +65,11 @@ export default function SalesPage() {
     } finally {
         setIsLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
 
   const availableTickets: Ticket[] = []; // No tickets by default
 
@@ -110,7 +111,9 @@ export default function SalesPage() {
       const itemToUpdate = prevCart.find(item => item.id === id);
       if (itemToUpdate?.type === 'product' && itemToUpdate.stock !== undefined && newQuantity > itemToUpdate.stock) {
         toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${itemToUpdate.stock} unidades de ${itemToUpdate.name}.` });
-        return prevCart;
+        return prevCart.map((item) =>
+          item.id === id ? { ...item, quantity: itemToUpdate.stock } : item
+        );
       }
 
       return prevCart.map((item) =>
@@ -213,8 +216,14 @@ export default function SalesPage() {
                                     productsInStock.map((product) => (
                                         <div key={product.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                                             <div className="flex items-center gap-3">
-                                                {/* Placeholder for product image */}
-                                                <div className="h-10 w-10 bg-secondary rounded-md flex-shrink-0"></div>
+                                                <div className="h-10 w-10 bg-secondary rounded-md flex-shrink-0 relative">
+                                                   <Image 
+                                                        src={product.imageUrl}
+                                                        alt={product.name}
+                                                        fill
+                                                        className="object-cover rounded-md"
+                                                    />
+                                                </div>
                                                 <div>
                                                     <p className="font-semibold">{product.name}</p>
                                                     <p className="text-sm text-muted-foreground">{formatCurrency(product.price)}</p>
@@ -261,7 +270,17 @@ export default function SalesPage() {
                                                 <Button size="icon" variant="outline" className="h-6 w-6 bg-blue-800 border-blue-700 hover:bg-blue-700" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
                                                     <Minus className="h-4 w-4" />
                                                 </Button>
-                                                <span className="w-6 text-center">{item.quantity}</span>
+                                                <Input
+                                                    type="number"
+                                                    value={item.quantity}
+                                                    onChange={(e) => {
+                                                        const newQuantity = parseInt(e.target.value, 10);
+                                                        if (!isNaN(newQuantity)) {
+                                                          updateQuantity(item.id, newQuantity);
+                                                        }
+                                                    }}
+                                                    className="w-12 h-6 text-center bg-blue-900 border-blue-700"
+                                                />
                                                 <Button size="icon" variant="outline" className="h-6 w-6 bg-blue-800 border-blue-700 hover:bg-blue-700" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
                                                     <Plus className="h-4 w-4" />
                                                 </Button>
