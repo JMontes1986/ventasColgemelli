@@ -202,6 +202,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     async function loadProducts() {
+      setIsLoading(true);
       try {
         const fetchedProducts = await getProducts();
         setProducts(fetchedProducts);
