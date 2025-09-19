@@ -66,8 +66,8 @@ function ProductForm({
             setPrice(initialData.price.toString());
             setStock(initialData.stock.toString());
             setImageUrl(initialData.imageUrl);
-            setIsSelfService(initialData.isSelfService);
-            setIsPosAvailable(initialData.isPosAvailable);
+            setIsSelfService(initialData.isSelfService || false);
+            setIsPosAvailable(initialData.isPosAvailable ?? true);
         } else if (isOpen && mode === 'create') {
             setName('');
             setPrice('');
