@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product } from "@/lib/types";
 
 // Function to get a single purchase by its ID
@@ -9,7 +9,10 @@ export async function getPurchaseById(id: string): Promise<Purchase | null> {
     const purchaseSnap = await getDoc(purchaseRef);
 
     if (purchaseSnap.exists()) {
-        return { id: purchaseSnap.id, ...purchaseSnap.data() } as Purchase;
+        // Ensure all items have a 'returned' property for consistency
+        const data = purchaseSnap.data();
+        const items = data.items.map((item: any) => ({ ...item, returned: item.returned || false }));
+        return { id: purchaseSnap.id, ...data, items } as Purchase;
     } else {
         return null;
     }
@@ -102,7 +105,10 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
 
       // Create the new purchase document
       const purchaseRef = doc(db, 'purchases', generatedId);
-      transaction.set(purchaseRef, purchase);
+      // Ensure all items have the 'returned' flag set to false initially
+      const itemsToSave = purchase.items.map(({ type, ...item}) => ({...item, returned: false }));
+      const purchaseDataToSave = { ...purchase, items: itemsToSave };
+      transaction.set(purchaseRef, purchaseDataToSave);
 
       return generatedId;
     });
@@ -114,3 +120,11 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
     throw error;
   }
 }
+
+// Function to update an existing purchase (e.g., to mark items as returned)
+export async function updatePurchase(purchaseId: string, data: Partial<Purchase>): Promise<void> {
+    const purchaseRef = doc(db, 'purchases', purchaseId);
+    await updateDoc(purchaseRef, data);
+}
+
+    

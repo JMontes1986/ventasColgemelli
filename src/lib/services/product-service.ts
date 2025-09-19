@@ -1,5 +1,6 @@
+
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, runTransaction, increment } from "firebase/firestore";
 import type { Product } from "@/lib/types";
 
 // Type for creating a new product, ID is optional as Firestore will generate it
@@ -49,3 +50,13 @@ export async function updateProduct(productId: string, product: UpdatableProduct
     const productRef = doc(db, 'products', productId);
     await updateDoc(productRef, product);
 }
+
+// Function to increase the stock of a product (for returns)
+export async function increaseProductStock(productId: string, quantity: number): Promise<void> {
+    const productRef = doc(db, 'products', productId);
+    await updateDoc(productRef, {
+        stock: increment(quantity)
+    });
+}
+
+    

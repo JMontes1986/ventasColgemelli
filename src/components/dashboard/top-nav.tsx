@@ -5,14 +5,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { RoleGate } from "../role-gate";
-import { navItems, adminNavItems } from "./sidebar-nav";
+import { navItems, adminNavItems } from "./sidebar-nav"; // Keep adminNavItems if you have them
+
+// Combine navItems and a new returns item
+const allNavItems = [
+  ...navItems,
+  { href: "/dashboard/returns", label: "Devoluciones", allowedRoles: ['admin', 'cashier'] },
+  ...adminNavItems,
+];
 
 export function TopNav({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
   const pathname = usePathname();
-  const allNavItems = [...navItems, ...adminNavItems];
 
   return (
     <nav
@@ -35,3 +41,5 @@ export function TopNav({
     </nav>
   );
 }
+
+    
