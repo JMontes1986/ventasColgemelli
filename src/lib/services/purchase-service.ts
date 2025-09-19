@@ -45,36 +45,62 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
 
   try {
     const newPurchaseId = await runTransaction(db, async (transaction) => {
-      // 1. Decrement stock for each product
-      for (const item of purchase.items) {
-        if (item.type === 'product') {
-          const productRef = doc(db, 'products', item.id);
-          const productDoc = await transaction.get(productRef);
-          if (!productDoc.exists()) {
-            throw new Error(`Producto con ID ${item.id} no encontrado.`);
-          }
-          const productData = productDoc.data() as Product;
-          const newStock = productData.stock - item.quantity;
-          if (newStock < 0) {
-            throw new Error(`Stock insuficiente para ${productData.name}.`);
-          }
-          transaction.update(productRef, { stock: newStock });
+      // --- ALL READS MUST COME BEFORE ALL WRITES ---
+
+      // 1. READ phase: Read all necessary documents first.
+      const productDocs = await Promise.all(
+        purchase.items
+          .filter(item => item.type === 'product')
+          .map(item => transaction.get(doc(db, 'products', item.id)))
+      );
+      
+      const counterDoc = await transaction.get(counterRef);
+
+      // --- VALIDATION AND PREPARATION phase ---
+
+      // Validate products and prepare stock updates
+      const stockUpdates: { ref: DocumentReference, newStock: number }[] = [];
+      for (let i = 0; i < productDocs.length; i++) {
+        const productDoc = productDocs[i];
+        const item = purchase.items.filter(item => item.type === 'product')[i];
+        
+        if (!productDoc.exists()) {
+          throw new Error(`Producto con ID ${item.id} no encontrado.`);
         }
+        
+        const productData = productDoc.data() as Product;
+        const newStock = productData.stock - item.quantity;
+
+        if (newStock < 0) {
+          throw new Error(`Stock insuficiente para ${productData.name}.`);
+        }
+        
+        stockUpdates.push({ ref: productDoc.ref, newStock });
       }
 
-      // 2. Increment the purchase counter
-      const counterDoc = await transaction.get(counterRef);
+      // Prepare counter update
       let newCount = 1;
       if (counterDoc.exists()) {
         newCount = counterDoc.data().count + 1;
       }
-      transaction.set(counterRef, { count: newCount }, { merge: true });
-
-      // 3. Generate the new Purchase ID
+      
+      // Generate the new Purchase ID
       const formattedCount = String(newCount).padStart(4, '0');
       const generatedId = `CG${firstItemInitial}${formattedCount}`;
 
-      // 4. Create the purchase document
+      // --- ALL WRITES HAPPEN HERE ---
+
+      // 2. WRITE phase: Commit all changes to the database.
+
+      // Update stock for each product
+      stockUpdates.forEach(update => {
+        transaction.update(update.ref, { stock: update.newStock });
+      });
+
+      // Update the purchase counter
+      transaction.set(counterRef, { count: newCount }, { merge: true });
+
+      // Create the new purchase document
       const purchaseRef = doc(db, 'purchases', generatedId);
       transaction.set(purchaseRef, purchase);
 
