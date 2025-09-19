@@ -1,8 +1,17 @@
 
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product, PurchaseStatus } from "@/lib/types";
+
+// Function to get all purchases, ordered by date
+export async function getPurchases(): Promise<Purchase[]> {
+  const purchasesCol = collection(db, 'purchases');
+  const q = query(purchasesCol, orderBy("date", "desc"));
+  const purchaseSnapshot = await getDocs(q);
+  const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+  return purchaseList;
+}
 
 // Function to get a single purchase by its ID
 export async function getPurchaseById(id: string): Promise<Purchase | null> {
@@ -23,7 +32,7 @@ export async function getPurchaseById(id: string): Promise<Purchase | null> {
 // Function to get all purchases for a given cedula from Firestore
 export async function getPurchasesByCedula(cedula: string): Promise<Purchase[]> {
   const purchasesCol = collection(db, 'purchases');
-  const q = query(purchasesCol, where("cedula", "==", cedula));
+  const q = query(purchasesCol, where("cedula", "==", cedula), orderBy("date", "desc"));
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
   return purchaseList;
@@ -32,7 +41,7 @@ export async function getPurchasesByCedula(cedula: string): Promise<Purchase[]> 
 // Function to get all purchases for a given celular from Firestore
 export async function getPurchasesByCelular(celular: string): Promise<Purchase[]> {
   const purchasesCol = collection(db, 'purchases');
-  const q = query(purchasesCol, where("celular", "==", celular));
+  const q = query(purchasesCol, where("celular", "==", celular), orderBy("date", "desc"));
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
   return purchaseList;

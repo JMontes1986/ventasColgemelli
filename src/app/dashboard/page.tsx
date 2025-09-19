@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -18,19 +21,53 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Ticket, DollarSign, Users, Activity } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import type { Order, Ticket as TicketType } from "@/lib/types";
+import type { Purchase } from "@/lib/types";
+import { getPurchases } from "@/lib/services/purchase-service";
+import { useToast } from "@/hooks/use-toast";
+
+const statusTranslations: Record<Purchase['status'], string> = {
+    pending: 'Pendiente',
+    paid: 'Pagado',
+    delivered: 'Entregado',
+    cancelled: 'Cancelado',
+};
+
+const statusColors: Record<Purchase['status'], string> = {
+    pending: 'bg-yellow-500/20 text-yellow-700',
+    paid: 'bg-green-500/20 text-green-700',
+    delivered: 'bg-blue-500/20 text-blue-700',
+    cancelled: 'bg-red-500/20 text-red-700',
+};
 
 export default function Dashboard() {
-  const orders: Order[] = [];
-  const tickets: TicketType[] = [];
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  const totalRevenue = orders
-    .filter((o) => o.status === "paid")
-    .reduce((sum, o) => sum + o.totalAmount, 0);
-  const ticketsSold = tickets.filter(
-    (t) => t.status === "sold" || t.status === "redeemed"
-  ).length;
-  const activeUsers = orders.reduce((acc, order) => acc.add(order.sellerId), new Set()).size;
+  useEffect(() => {
+    async function loadPurchases() {
+      setIsLoading(true);
+      try {
+        const fetchedPurchases = await getPurchases();
+        setPurchases(fetchedPurchases);
+      } catch (error) {
+        console.error("Error fetching purchases:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar las compras." });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadPurchases();
+  }, [toast]);
+
+  const paidPurchases = purchases.filter((p) => p.status === "paid" || p.status === "delivered");
+  const totalRevenue = paidPurchases.reduce((sum, p) => sum + p.total, 0);
+  const ticketsSold = purchases
+    .flatMap(p => p.items)
+    .filter(item => item.name.startsWith('CG')) // A simple way to identify tickets
+    .reduce((sum, item) => sum + item.quantity, 0);
+
+  const activeUsers = new Set(purchases.map(p => p.sellerId).filter(Boolean)).size;
 
   return (
     <div>
@@ -47,19 +84,21 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              Basado en todos los pedidos pagados
+              Basado en todas las compras pagadas
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Boletos Vendidos</CardTitle>
+            <CardTitle className="text-sm font-medium">Artículos Vendidos</CardTitle>
             <Ticket className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{ticketsSold}</div>
+            <div className="text-2xl font-bold">
+              +{purchases.flatMap(p => p.items).reduce((sum, item) => sum + item.quantity, 0)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Total de boletos vendidos y canjeados
+              Total de artículos en compras
             </p>
           </CardContent>
         </Card>
@@ -77,20 +116,20 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tasa de Canje</CardTitle>
+            <CardTitle className="text-sm font-medium">Tasa de Entrega</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {(
-                (tickets.filter((t) => t.status === "redeemed").length /
-                  (ticketsSold || 1)) *
+                (purchases.filter((p) => p.status === "delivered").length /
+                  (paidPurchases.length || 1)) *
                 100
               ).toFixed(1)}
               %
             </div>
             <p className="text-xs text-muted-foreground">
-              De todos los boletos vendidos
+              De todas las compras pagadas
             </p>
           </CardContent>
         </Card>
@@ -104,49 +143,47 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID de Pedido</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Vendedor</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.length === 0 ? (
+             {isLoading ? (
+                <div className="h-24 text-center flex items-center justify-center">Cargando ventas...</div>
+            ) : (
+                <Table>
+                <TableHeader>
                     <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                            No hay ventas recientes.
-                        </TableCell>
+                    <TableHead>ID de Compra</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Vendedor/Cliente</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
                     </TableRow>
-                ) : (
-                    orders.slice(0, 5).map((order) => (
-                    <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.id}</TableCell>
-                        <TableCell>
-                        <Badge
-                            variant={
-                            order.status === "paid"
-                                ? "default"
-                                : order.status === "pending"
-                                ? "secondary"
-                                : "destructive"
-                            }
-                            className={order.status === 'paid' ? 'bg-green-500/20 text-green-700 hover:bg-green-500/30 capitalize' : 'capitalize'}
-                        >
-                            {order.status === 'paid' ? 'Pagado' : order.status === 'pending' ? 'Pendiente' : 'Cancelado'}
-                        </Badge>
-                        </TableCell>
-                        <TableCell>{order.sellerName}</TableCell>
-                        <TableCell className="text-right">
-                        {formatCurrency(order.totalAmount)}
-                        </TableCell>
-                    </TableRow>
-                    ))
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                    {purchases.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center">
+                                No hay ventas recientes.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        purchases.slice(0, 5).map((purchase) => (
+                        <TableRow key={purchase.id}>
+                            <TableCell className="font-medium font-mono">{purchase.id}</TableCell>
+                            <TableCell>
+                            <Badge
+                                variant="outline"
+                                className={`capitalize ${statusColors[purchase.status]}`}
+                            >
+                                {statusTranslations[purchase.status]}
+                            </Badge>
+                            </TableCell>
+                            <TableCell>{purchase.sellerName || purchase.cedula}</TableCell>
+                            <TableCell className="text-right">
+                            {formatCurrency(purchase.total)}
+                            </TableCell>
+                        </TableRow>
+                        ))
+                    )}
+                </TableBody>
+                </Table>
+            )}
           </CardContent>
         </Card>
       </div>
