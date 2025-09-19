@@ -9,23 +9,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Gem, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authenticateUser } from "@/lib/services/user-service";
+import { useMockAuth } from "@/hooks/use-mock-auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { setMockRole } = useMockAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === "administrador" && password === "Gemelli.2025") {
-      router.push("/dashboard");
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error de autenticación",
-        description: "El usuario o la contraseña son incorrectos.",
-      });
+    setIsLoading(true);
+
+    try {
+      const authenticatedUser = await authenticateUser(username, password);
+      if (authenticatedUser) {
+        setMockRole(authenticatedUser.role);
+        router.push("/dashboard");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error de autenticación",
+          description: "El usuario o la contraseña son incorrectos.",
+        });
+      }
+    } catch (error) {
+        console.error("Login error:", error);
+        toast({
+            variant: "destructive",
+            title: "Error del sistema",
+            description: "No se pudo conectar con el servicio de autenticación.",
+        });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -51,10 +70,11 @@ export default function LoginPage() {
               <Input 
                 id="username" 
                 type="text" 
-                placeholder="administrador" 
+                placeholder="su.usuario" 
                 required 
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -65,18 +85,16 @@ export default function LoginPage() {
                 required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col">
-          <Button className="w-full" type="submit" form="login-form">
+          <Button className="w-full" type="submit" form="login-form" disabled={isLoading}>
             <LogIn className="mr-2 h-4 w-4" />
-            Ingresar
+            {isLoading ? "Ingresando..." : "Ingresar"}
           </Button>
-           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Use el selector de roles en el panel para simular diferentes usuarios.
-          </p>
         </CardFooter>
       </Card>
     </main>

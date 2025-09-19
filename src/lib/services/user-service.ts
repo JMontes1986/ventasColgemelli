@@ -1,8 +1,33 @@
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, doc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, limit } from "firebase/firestore";
 import type { User, NewUser, UserRole } from "@/lib/types";
 import { mockUsers } from "@/lib/placeholder-data";
+
+// Function to authenticate a user
+export async function authenticateUser(username: string, password_provided: string): Promise<User | null> {
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, where("username", "==", username), limit(1));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+        console.log("No user found with username:", username);
+        return null; // User not found
+    }
+
+    const userDoc = querySnapshot.docs[0];
+    const userData = userDoc.data() as User;
+    
+    // In a real app, you should NEVER store or compare plain text passwords.
+    // This should be replaced with a secure hashing and comparison mechanism (e.g., bcrypt).
+    if (userData.password === password_provided) {
+        return { id: userDoc.id, ...userData };
+    }
+
+    console.log("Password mismatch for user:", username);
+    return null; // Password incorrect
+}
+
 
 // Function to get all users from Firestore
 export async function getUsers(): Promise<User[]> {
