@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Product } from '@/lib/types';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,7 @@ export default function SelfServicePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setIsLoading(true);
     try {
         const fetchedProducts = await getSelfServiceProducts();
@@ -78,11 +78,11 @@ export default function SelfServicePage() {
     } finally {
         setIsLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     loadProducts();
-  }, [toast]);
+  }, [loadProducts]);
 
   const addToCart = (item: Product) => {
     setCart((prevCart) => {
@@ -439,4 +439,5 @@ export default function SelfServicePage() {
   );
 
     
+
 
