@@ -38,7 +38,7 @@ const roleTranslations: Record<UserRole, string> = {
   readonly: "Solo Lectura",
 };
 
-const navItems = [
+export const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Panel", allowedRoles: ['admin', 'cashier', 'seller', 'auditor', 'readonly'] },
   { href: "/dashboard/sales", icon: ShoppingCart, label: "Ventas", allowedRoles: ['admin', 'cashier', 'seller'] },
   { href: "/self-service", icon: UserCog, label: "Autogestión", allowedRoles: ['admin', 'seller', 'cashier', 'auditor', 'readonly'] },
@@ -47,7 +47,7 @@ const navItems = [
   { href: "/dashboard/cashbox", icon: Archive, label: "Caja", allowedRoles: ['admin', 'cashier'] },
 ];
 
-const adminNavItems = [
+export const adminNavItems = [
     { href: "/dashboard/users", icon: Users, label: "Usuarios", allowedRoles: ['admin'] },
     { href: "/dashboard/audit", icon: ClipboardList, label: "Auditoría", allowedRoles: ['admin'] },
 ]
