@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Product, Ticket } from '@/lib/types';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import { getProducts } from '@/lib/services/product-service';
 import { addPurchase, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useMockAuth } from '@/hooks/use-mock-auth';
+import { Badge } from '@/components/ui/badge';
 
 type CartItem = {
   id: string;
@@ -36,6 +37,7 @@ type CartItem = {
   price: number;
   quantity: number;
   type: 'product' | 'ticket';
+  stock?: number;
 };
 
 export default function SalesPage() {
@@ -47,18 +49,24 @@ export default function SalesPage() {
   const { role, users, isMounted } = useMockAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    async function loadProducts() {
-        try {
-            const fetchedProducts = await getProducts();
-            setProducts(fetchedProducts);
-        } catch (error) {
-            console.error("Error fetching products:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
-        } finally {
-            setIsLoading(false);
-        }
+  const productsById = useMemo(() => {
+    return new Map(products.map(p => [p.id, p]));
+  }, [products]);
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+        const fetchedProducts = await getProducts();
+        setProducts(fetchedProducts);
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
+    } finally {
+        setIsLoading(false);
     }
+  }
+
+  useEffect(() => {
     loadProducts();
   }, [toast]);
 
@@ -67,6 +75,19 @@ export default function SalesPage() {
   const addToCart = (item: Product | Ticket, type: 'product' | 'ticket') => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
+      
+      if (type === 'product') {
+        const product = item as Product;
+        if (product.stock <= 0) {
+            toast({ variant: "destructive", title: "Sin Stock", description: `${product.name} está agotado.` });
+            return prevCart;
+        }
+         if (existingItem && existingItem.quantity >= product.stock) {
+            toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${product.name}.` });
+            return prevCart;
+        }
+      }
+      
       if (existingItem) {
         return prevCart.map((cartItem) =>
           cartItem.id === item.id
@@ -75,7 +96,8 @@ export default function SalesPage() {
         );
       }
       const name = type === 'product' ? (item as Product).name : (item as Ticket).uniqueCode;
-      return [...prevCart, { id: item.id, name, price: item.price, quantity: 1, type }];
+      const stock = type === 'product' ? (item as Product).stock : undefined;
+      return [...prevCart, { id: item.id, name, price: item.price, quantity: 1, type, stock }];
     });
   };
 
@@ -84,6 +106,13 @@ export default function SalesPage() {
       if (newQuantity <= 0) {
         return prevCart.filter((item) => item.id !== id);
       }
+
+      const itemToUpdate = prevCart.find(item => item.id === id);
+      if (itemToUpdate?.type === 'product' && itemToUpdate.stock !== undefined && newQuantity > itemToUpdate.stock) {
+        toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${itemToUpdate.stock} unidades de ${itemToUpdate.name}.` });
+        return prevCart;
+      }
+
       return prevCart.map((item) =>
         item.id === id ? { ...item, quantity: newQuantity } : item
       );
@@ -111,7 +140,7 @@ export default function SalesPage() {
     const newPurchaseData: NewPurchase = {
         date: new Date().toLocaleString('es-CO'),
         total: subtotal,
-        items: cart.filter(item => item.type === 'product'), // Assuming we only sell products for now
+        items: cart,
         cedula: 'N/A', // Not required for POS sales
         celular: 'N/A',
         sellerId: currentUser?.id,
@@ -122,9 +151,10 @@ export default function SalesPage() {
         await addPurchase(newPurchaseData);
         toast({ title: "Venta Exitosa", description: "La compra ha sido registrada." });
         clearCart();
+        await loadProducts(); // Refresh product list to show updated stock
     } catch (error) {
         console.error("Error creating purchase:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo registrar la venta." });
+        toast({ variant: "destructive", title: "Error en la Venta", description: (error as Error).message || "No se pudo registrar la venta." });
     } finally {
         setIsProcessing(false);
     }
@@ -188,9 +218,16 @@ export default function SalesPage() {
                                                     <p className="text-sm text-muted-foreground">{formatCurrency(product.price)}</p>
                                                 </div>
                                             </div>
-                                            <Button onClick={() => addToCart(product, 'product')}>
-                                                Agregar al carrito
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                {product.stock <= 0 ? (
+                                                    <Badge variant="destructive">Agotado</Badge>
+                                                ) : (
+                                                    <Badge variant="outline">Stock: {product.stock}</Badge>
+                                                )}
+                                                <Button onClick={() => addToCart(product, 'product')} disabled={product.stock <= 0}>
+                                                    Agregar
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))
                                 )}

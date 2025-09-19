@@ -48,6 +48,7 @@ type CartItem = {
   price: number;
   quantity: number;
   type: 'product';
+  stock: number;
 };
 
 export default function SelfServicePage() {
@@ -62,26 +63,40 @@ export default function SelfServicePage() {
   const [celular, setCelular] = useState('');
   const [searchCedula, setSearchCedula] = useState('');
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function loadProducts() {
-        try {
-            const fetchedProducts = await getSelfServiceProducts();
-            setProducts(fetchedProducts);
-        } catch (error) {
-            console.error("Error fetching products:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
-        } finally {
-            setIsLoading(false);
-        }
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+        const fetchedProducts = await getSelfServiceProducts();
+        // Filter out products with 0 stock
+        setProducts(fetchedProducts.filter(p => p.stock > 0));
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
+    } finally {
+        setIsLoading(false);
     }
+  }
+
+  useEffect(() => {
     loadProducts();
   }, [toast]);
 
   const addToCart = (item: Product) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
+      
+      if (item.stock <= 0) {
+          toast({ variant: "destructive", title: "Sin Stock", description: `${item.name} está agotado.` });
+          return prevCart;
+      }
+       if (existingItem && existingItem.quantity >= item.stock) {
+          toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${item.name}.` });
+          return prevCart;
+      }
+      
       if (existingItem) {
         return prevCart.map((cartItem) =>
           cartItem.id === item.id
@@ -89,7 +104,7 @@ export default function SelfServicePage() {
             : cartItem
         );
       }
-      return [...prevCart, { id: item.id, name: item.name, price: item.price, quantity: 1, type: 'product' }];
+      return [...prevCart, { id: item.id, name: item.name, price: item.price, quantity: 1, type: 'product', stock: item.stock }];
     });
   };
 
@@ -98,6 +113,13 @@ export default function SelfServicePage() {
       if (newQuantity <= 0) {
         return prevCart.filter((item) => item.id !== id);
       }
+
+      const itemToUpdate = prevCart.find(item => item.id === id);
+      if (itemToUpdate && itemToUpdate.stock < newQuantity) {
+        toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${itemToUpdate.stock} unidades de ${itemToUpdate.name}.` });
+        return prevCart;
+      }
+
       return prevCart.map((item) =>
         item.id === id ? { ...item, quantity: newQuantity } : item
       );
@@ -121,6 +143,7 @@ export default function SelfServicePage() {
   const handleConfirmPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0 || !cedula || !celular) return;
+    setIsProcessing(true);
 
     const newPurchaseData: NewPurchase = {
         date: new Date().toLocaleString('es-CO'),
@@ -138,7 +161,9 @@ export default function SelfServicePage() {
         toast({ title: "Éxito", description: "Código de pago generado." });
     } catch (error) {
         console.error("Error creating purchase:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo generar el código de pago." });
+        toast({ variant: "destructive", title: "Error en la Compra", description: (error as Error).message || "No se pudo generar el código de pago." });
+    } finally {
+        setIsProcessing(false);
     }
   };
 
@@ -165,6 +190,7 @@ export default function SelfServicePage() {
       setCedula('');
       setCelular('');
       clearCart();
+      loadProducts(); // Refresh products after a successful purchase
   }
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -194,7 +220,7 @@ export default function SelfServicePage() {
             <div className="lg:col-span-2">
                 {isLoading ? (
                     <p>Cargando productos...</p>
-                ) : (
+                ) : products.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {products.map((product) => (
                         <Card key={product.id} className="overflow-hidden group">
@@ -222,6 +248,8 @@ export default function SelfServicePage() {
                         </Card>
                         ))}
                     </div>
+                ) : (
+                    <p>No hay productos disponibles para autoservicio en este momento.</p>
                 )}
             </div>
 
@@ -381,7 +409,9 @@ export default function SelfServicePage() {
                             Cancelar
                         </Button>
                     </DialogClose>
-                    <Button type="submit" form="user-info-form">Confirmar y Pagar</Button>
+                    <Button type="submit" form="user-info-form" disabled={isProcessing}>
+                        {isProcessing ? 'Procesando...' : 'Confirmar y Pagar'}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -409,3 +439,4 @@ export default function SelfServicePage() {
   );
 
     
+
