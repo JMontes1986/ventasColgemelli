@@ -37,6 +37,7 @@ import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { getProducts } from '@/lib/services/product-service';
+import { addPurchase, getPurchasesByCedula, type NewPurchase, type Purchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -48,17 +49,6 @@ type CartItem = {
   type: 'product';
 };
 
-type Purchase = {
-    code: string;
-    date: string;
-    total: number;
-    items: CartItem[];
-    cedula: string;
-    celular: string;
-}
-
-const PURCHASE_HISTORY_KEY = 'purchase_history';
-
 export default function SelfServicePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,10 +56,11 @@ export default function SelfServicePage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
   const [paymentCode, setPaymentCode] = useState<string | null>(null);
-  const [allPurchases, setAllPurchases] = useState<Purchase[]>([]);
+  const [purchaseHistory, setPurchaseHistory] = useState<Purchase[]>([]);
   const [cedula, setCedula] = useState('');
   const [celular, setCelular] = useState('');
   const [searchCedula, setSearchCedula] = useState('');
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,17 +77,6 @@ export default function SelfServicePage() {
     }
     loadProducts();
   }, [toast]);
-
-  useEffect(() => {
-    try {
-        const storedHistory = localStorage.getItem(PURCHASE_HISTORY_KEY);
-        if (storedHistory) {
-            setAllPurchases(JSON.parse(storedHistory));
-        }
-    } catch (error) {
-        console.warn("Could not read purchase history from localStorage", error);
-    }
-  }, []);
 
   const addToCart = (item: Product) => {
     setCart((prevCart) => {
@@ -137,32 +117,46 @@ export default function SelfServicePage() {
     }
   }
 
-  const handleConfirmPayment = (e: React.FormEvent) => {
+  const handleConfirmPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0 || !cedula || !celular) return;
 
-    const code = `CG-PAY-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    const newPurchase: Purchase = {
-        code,
+    const newPurchaseData: NewPurchase = {
         date: new Date().toLocaleString('es-CO'),
         total: subtotal,
         items: cart,
         cedula,
         celular,
     };
-
-    const updatedHistory = [newPurchase, ...allPurchases];
-    setAllPurchases(updatedHistory);
+    
     try {
-        localStorage.setItem(PURCHASE_HISTORY_KEY, JSON.stringify(updatedHistory));
+        const addedPurchase = await addPurchase(newPurchaseData);
+        setPaymentCode(addedPurchase.id);
+        setIsUserInfoModalOpen(false);
+        setIsPaymentModalOpen(true);
+        toast({ title: "Éxito", description: "Código de pago generado." });
     } catch (error) {
-        console.warn("Could not save purchase history to localStorage", error);
+        console.error("Error creating purchase:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo generar el código de pago." });
     }
-
-    setPaymentCode(code);
-    setIsUserInfoModalOpen(false);
-    setIsPaymentModalOpen(true);
   };
+
+  const handleSearchHistory = async () => {
+    if (!searchCedula) {
+        toast({ variant: "destructive", title: "Error", description: "Por favor, ingrese una cédula para buscar." });
+        return;
+    }
+    setIsHistoryLoading(true);
+    try {
+        const history = await getPurchasesByCedula(searchCedula);
+        setPurchaseHistory(history);
+    } catch (error) {
+        console.error("Error fetching purchase history:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo cargar el historial de compras." });
+    } finally {
+        setIsHistoryLoading(false);
+    }
+  }
 
   const closeModal = () => {
       setIsPaymentModalOpen(false);
@@ -173,13 +167,6 @@ export default function SelfServicePage() {
   }
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-
-  const filteredHistory = allPurchases.filter(p => {
-        if(p.cedula){
-           return p.cedula.includes(searchCedula)
-        }
-        return false;
-   });
 
   return (
     <div className="min-h-screen bg-background">
@@ -305,22 +292,26 @@ export default function SelfServicePage() {
                         <History className="h-6 w-6" />
                         Mi Historial de Compras
                     </CardTitle>
-                    <div className="pt-2">
-                        <Label htmlFor="search-cedula">Buscar por Cédula</Label>
-                        <Input 
-                            id="search-cedula"
-                            placeholder="Ingrese su número de cédula para ver sus compras"
-                            value={searchCedula}
-                            onChange={(e) => setSearchCedula(e.target.value)}
-                        />
+                     <CardDescription>
+                        Ingrese su número de cédula para ver su historial de compras y encontrar sus códigos de pago.
+                    </CardDescription>
+                    <div className="pt-2 flex items-end gap-2">
+                         <div className="flex-grow">
+                            <Label htmlFor="search-cedula">Buscar por Cédula</Label>
+                            <Input 
+                                id="search-cedula"
+                                placeholder="Ingrese su número de cédula"
+                                value={searchCedula}
+                                onChange={(e) => setSearchCedula(e.target.value)}
+                            />
+                        </div>
+                        <Button onClick={handleSearchHistory}>Buscar</Button>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {searchCedula && filteredHistory.length === 0 ? (
-                        <p className="text-center text-muted-foreground">No se encontraron compras para esta cédula.</p>
-                    ) : !searchCedula ? (
-                         <p className="text-center text-muted-foreground">Ingrese su cédula para buscar su historial.</p>
-                    ) : (
+                     {isHistoryLoading ? (
+                        <p className="text-center text-muted-foreground">Buscando...</p>
+                    ) : purchaseHistory.length > 0 ? (
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -332,9 +323,9 @@ export default function SelfServicePage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredHistory.map((purchase) => (
-                                    <TableRow key={purchase.code}>
-                                        <TableCell className="font-mono">{purchase.code}</TableCell>
+                                {purchaseHistory.map((purchase) => (
+                                    <TableRow key={purchase.id}>
+                                        <TableCell className="font-mono">{purchase.id}</TableCell>
                                         <TableCell>{purchase.date}</TableCell>
                                         <TableCell>{purchase.cedula}</TableCell>
                                         <TableCell>{purchase.celular}</TableCell>
@@ -343,6 +334,8 @@ export default function SelfServicePage() {
                                 ))}
                             </TableBody>
                         </Table>
+                    ) : (
+                        <p className="text-center text-muted-foreground">Ingrese una cédula y haga clic en buscar para ver el historial.</p>
                     )}
                 </CardContent>
             </Card>
@@ -397,7 +390,7 @@ export default function SelfServicePage() {
                 <DialogHeader>
                     <DialogTitle>Código de Pago Generado</DialogTitle>
                     <DialogDescription>
-                        Presente este código en la caja para completar su compra.
+                        Presente este código en la caja para completar su compra. El código es el ID de su compra.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 text-center">
