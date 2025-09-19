@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -19,12 +19,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { DollarSign, Users, ShoppingCart, UserCog } from "lucide-react";
+import { DollarSign, Users, ShoppingCart, UserCog, RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import type { Purchase, Product } from "@/lib/types";
 import { getPurchases } from "@/lib/services/purchase-service";
 import { getProducts } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 const statusTranslations: Record<Purchase['status'], string> = {
     pending: 'Pendiente',
@@ -54,25 +55,26 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
-      try {
-        const [fetchedPurchases, fetchedProducts] = await Promise.all([
-          getPurchases(),
-          getProducts(),
-        ]);
-        setPurchases(fetchedPurchases);
-        setProducts(fetchedProducts);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos del panel." });
-      } finally {
-        setIsLoading(false);
-      }
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [fetchedPurchases, fetchedProducts] = await Promise.all([
+        getPurchases(),
+        getProducts(),
+      ]);
+      setPurchases(fetchedPurchases);
+      setProducts(fetchedProducts);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos del panel." });
+    } finally {
+      setIsLoading(false);
     }
+  }, []); // toast was removed from dependencies
+
+  useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const paidPurchases = purchases.filter((p) => p.status === "paid" || p.status === "delivered");
   const totalRevenue = paidPurchases.reduce((sum, p) => sum + p.total, 0);
@@ -105,7 +107,12 @@ export default function Dashboard() {
       <PageHeader
         title="Panel de Control"
         description="Un resumen de las ventas y la actividad de los boletos."
-      />
+      >
+        <Button variant="outline" onClick={loadData} disabled={isLoading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Actualizando...' : 'Actualizar'}
+        </Button>
+      </PageHeader>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
