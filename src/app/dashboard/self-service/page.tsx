@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Product } from '@/lib/types';
+import type { Product, Purchase } from '@/lib/types';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +37,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { getSelfServiceProducts } from '@/lib/services/product-service';
-import { addPurchase, getPurchasesByCedula, type NewPurchase, type Purchase } from '@/lib/services/purchase-service';
+import { addPurchase, getPurchasesByCedula, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -77,7 +77,7 @@ export default function SelfServicePage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     loadProducts();
@@ -150,6 +150,7 @@ export default function SelfServicePage() {
         items: cart,
         cedula,
         celular,
+        status: 'pending',
     };
     
     try {
@@ -157,7 +158,7 @@ export default function SelfServicePage() {
         setPaymentCode(addedPurchase.id);
         setIsUserInfoModalOpen(false);
         setIsPaymentModalOpen(true);
-        toast({ title: "Éxito", description: "Código de pago generado." });
+        toast({ title: "Éxito", description: "Código de pago generado. Su compra está pendiente de confirmación." });
     } catch (error) {
         console.error("Error creating purchase:", error);
         toast({ variant: "destructive", title: "Error en la Compra", description: (error as Error).message || "No se pudo generar el código de pago." });
@@ -330,8 +331,7 @@ export default function SelfServicePage() {
                   <TableRow>
                     <TableHead>Código de Pago</TableHead>
                     <TableHead>Fecha</TableHead>
-                    <TableHead>Cédula</TableHead>
-                    <TableHead>Celular</TableHead>
+                    <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -340,8 +340,11 @@ export default function SelfServicePage() {
                     <TableRow key={purchase.id}>
                       <TableCell className="font-mono">{purchase.id}</TableCell>
                       <TableCell>{purchase.date}</TableCell>
-                      <TableCell>{purchase.cedula}</TableCell>
-                      <TableCell>{purchase.celular}</TableCell>
+                      <TableCell>
+                         <Badge variant={purchase.status === 'paid' || purchase.status === 'delivered' ? 'default' : 'secondary'} className={purchase.status === 'paid' || purchase.status === 'delivered' ? 'bg-green-500/20 text-green-700' : ''}>
+                            {purchase.status === 'pending' ? 'Pendiente' : 'Pagado'}
+                         </Badge>
+                      </TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(purchase.total)}</TableCell>
                     </TableRow>
                   ))}
@@ -394,7 +397,7 @@ export default function SelfServicePage() {
               </Button>
             </DialogClose>
             <Button type="submit" form="user-info-form" disabled={isProcessing}>
-              {isProcessing ? 'Procesando...' : 'Confirmar y Pagar'}
+              {isProcessing ? 'Procesando...' : 'Confirmar y Generar Código'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -405,7 +408,7 @@ export default function SelfServicePage() {
           <DialogHeader>
             <DialogTitle>Código de Pago Generado</DialogTitle>
             <DialogDesc>
-              Presente este código en la caja para completar su compra. El código es el ID de su compra.
+              Su compra está pendiente. Presente este código en la caja para confirmar el pago y recibir sus productos.
             </DialogDesc>
           </DialogHeader>
           <div className="py-4 text-center">

@@ -1,7 +1,8 @@
 
+
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc } from "firebase/firestore";
-import type { Purchase, NewPurchase, Product } from "@/lib/types";
+import type { Purchase, NewPurchase, Product, PurchaseStatus } from "@/lib/types";
 
 // Function to get a single purchase by its ID
 export async function getPurchaseById(id: string): Promise<Purchase | null> {
@@ -107,7 +108,11 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       const purchaseRef = doc(db, 'purchases', generatedId);
       // Ensure all items have the 'returned' flag set to false initially
       const itemsToSave = purchase.items.map(({ type, ...item}) => ({...item, returned: false }));
-      const purchaseDataToSave = { ...purchase, items: itemsToSave };
+      
+      // If purchase comes from POS (sellerId is present), status is 'paid'. Otherwise, 'pending'.
+      const status: PurchaseStatus = purchase.sellerId ? 'paid' : 'pending';
+
+      const purchaseDataToSave = { ...purchase, items: itemsToSave, status };
       transaction.set(purchaseRef, purchaseDataToSave);
 
       return generatedId;
@@ -126,5 +131,3 @@ export async function updatePurchase(purchaseId: string, data: Partial<Purchase>
     const purchaseRef = doc(db, 'purchases', purchaseId);
     await updateDoc(purchaseRef, data);
 }
-
-    

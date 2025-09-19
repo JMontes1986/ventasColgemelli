@@ -7,12 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Info, CheckCircle, TicketCheck, AlertTriangle } from "lucide-react";
-import { getPurchasesByCedula, getPurchaseById, getPurchasesByCelular } from '@/lib/services/purchase-service';
+import { Search, Info, CheckCircle, TicketCheck, AlertTriangle, CreditCard } from "lucide-react";
+import { getPurchasesByCedula, getPurchaseById, getPurchasesByCelular, updatePurchase } from '@/lib/services/purchase-service';
 import type { Purchase } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+
+const statusTranslations: Record<Purchase['status'], string> = {
+    pending: 'Pendiente',
+    paid: 'Pagado',
+    delivered: 'Entregado',
+    cancelled: 'Cancelado',
+};
+
+const statusColors: Record<Purchase['status'], string> = {
+    pending: 'bg-yellow-500/20 text-yellow-700',
+    paid: 'bg-blue-500/20 text-blue-700',
+    delivered: 'bg-green-500/20 text-green-700',
+    cancelled: 'bg-red-500/20 text-red-700',
+};
 
 export default function RedeemPage() {
     const [searchCedula, setSearchCedula] = useState('');
@@ -20,6 +35,7 @@ export default function RedeemPage() {
     const [searchCode, setSearchCode] = useState('');
     const [searchResults, setSearchResults] = useState<Purchase[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
     const [searchPerformed, setSearchPerformed] = useState(false);
     const { toast } = useToast();
 
@@ -63,6 +79,64 @@ export default function RedeemPage() {
             setIsLoading(false);
         }
     }
+
+    const handleUpdateStatus = async (purchaseId: string, newStatus: Purchase['status']) => {
+        setIsUpdating(true);
+        try {
+            await updatePurchase(purchaseId, { status: newStatus });
+            setSearchResults(prev => prev.map(p => p.id === purchaseId ? { ...p, status: newStatus } : p));
+            toast({
+                title: 'Éxito',
+                description: `El estado de la compra ha sido actualizado a ${statusTranslations[newStatus]}.`
+            });
+        } catch (error) {
+            console.error("Error updating purchase status:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error de Actualización',
+                description: 'No se pudo actualizar el estado de la compra.'
+            });
+        } finally {
+            setIsUpdating(false);
+        }
+    }
+
+    const renderActionButton = (purchase: Purchase) => {
+        switch (purchase.status) {
+            case 'pending':
+                return (
+                    <Button 
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        onClick={() => handleUpdateStatus(purchase.id, 'paid')}
+                        disabled={isUpdating}
+                    >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        {isUpdating ? 'Confirmando...' : 'Confirmar Pago'}
+                    </Button>
+                );
+            case 'paid':
+                return (
+                    <Button 
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        onClick={() => handleUpdateStatus(purchase.id, 'delivered')}
+                        disabled={isUpdating}
+                    >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                         {isUpdating ? 'Entregando...' : 'Marcar como Entregado'}
+                    </Button>
+                );
+            case 'delivered':
+                 return (
+                    <div className="flex items-center justify-center w-full text-green-700 font-semibold">
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Compra Entregada
+                    </div>
+                );
+            default:
+                return null;
+        }
+    }
+
 
     return (
         <div>
@@ -127,10 +201,17 @@ export default function RedeemPage() {
                                     {searchResults.map(purchase => (
                                         <Card key={purchase.id}>
                                             <CardHeader>
-                                                <CardTitle className="text-lg">Código: <span className="font-mono">{purchase.id}</span></CardTitle>
-                                                <CardDescription>
-                                                    Fecha: {purchase.date} | Cédula: {purchase.cedula} | Celular: {purchase.celular}
-                                                </CardDescription>
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <CardTitle className="text-lg">Código: <span className="font-mono">{purchase.id}</span></CardTitle>
+                                                        <CardDescription>
+                                                            Fecha: {purchase.date} | Cédula: {purchase.cedula} | Celular: {purchase.celular}
+                                                        </CardDescription>
+                                                    </div>
+                                                    <Badge className={cn("capitalize", statusColors[purchase.status])}>
+                                                        {statusTranslations[purchase.status]}
+                                                    </Badge>
+                                                </div>
                                             </CardHeader>
                                             <CardContent>
                                                 <h4 className="font-semibold mb-2">Artículos Comprados:</h4>
@@ -144,10 +225,7 @@ export default function RedeemPage() {
                                                 <p className="font-bold text-right mt-2">Total: {formatCurrency(purchase.total)}</p>
                                             </CardContent>
                                             <CardFooter>
-                                                <Button className="w-full bg-green-600 hover:bg-green-700">
-                                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                                    Marcar como Entregado
-                                                </Button>
+                                                {renderActionButton(purchase)}
                                             </CardFooter>
                                         </Card>
                                     ))}
