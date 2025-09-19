@@ -19,11 +19,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { DollarSign, Users, ShoppingCart, UserCog, RefreshCw, Download } from "lucide-react";
+import { DollarSign, Users, ShoppingCart, UserCog, RefreshCw, Download, Undo2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import type { Purchase, Product } from "@/lib/types";
+import type { Purchase, Product, Return } from "@/lib/types";
 import { getPurchases } from "@/lib/services/purchase-service";
 import { getProducts } from "@/lib/services/product-service";
+import { getReturns } from "@/lib/services/return-service";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
@@ -52,18 +53,21 @@ type ProductSales = {
 export default function Dashboard() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [returns, setReturns] = useState<Return[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fetchedPurchases, fetchedProducts] = await Promise.all([
+      const [fetchedPurchases, fetchedProducts, fetchedReturns] = await Promise.all([
         getPurchases(),
         getProducts(),
+        getReturns(),
       ]);
       setPurchases(fetchedPurchases);
       setProducts(fetchedProducts);
+      setReturns(fetchedReturns);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos del panel." });
@@ -86,18 +90,32 @@ export default function Dashboard() {
   const selfServiceUsers = new Set(selfServicePurchases.map(p => p.cedula)).size;
 
   const activeSellers = new Set(paidPurchases.map(p => p.sellerId).filter(Boolean)).size;
+  
+  const totalReturnedItems = returns.reduce((sum, r) => sum + r.quantity, 0);
 
-  const productSales = paidPurchases
-    .flatMap(p => p.items)
-    .reduce((acc, item) => {
-        if (!acc[item.id]) {
-            const product = products.find(p => p.id === item.id);
-            acc[item.id] = { name: product?.name || item.name, quantity: 0, revenue: 0 };
+  // Calculate gross sales
+    const productSales = paidPurchases
+        .flatMap(p => p.items)
+        .reduce((acc, item) => {
+            if (!acc[item.id]) {
+                const product = products.find(p => p.id === item.id);
+                acc[item.id] = { name: product?.name || item.name, quantity: 0, revenue: 0 };
+            }
+            acc[item.id].quantity += item.quantity;
+            acc[item.id].revenue += item.price * item.quantity;
+            return acc;
+        }, {} as ProductSales);
+
+    // Subtract returns from gross sales
+    returns.forEach(returnedItem => {
+        if (productSales[returnedItem.productId]) {
+            const product = products.find(p => p.id === returnedItem.productId);
+            const pricePerItem = product ? product.price : 0;
+            productSales[returnedItem.productId].quantity -= returnedItem.quantity;
+            productSales[returnedItem.productId].revenue -= returnedItem.quantity * pricePerItem;
         }
-        acc[item.id].quantity += item.quantity;
-        acc[item.id].revenue += item.price * item.quantity;
-        return acc;
-    }, {} as ProductSales);
+    });
+
 
   const sortedProductSales = Object.entries(productSales).sort(([,a],[,b]) => b.revenue - a.revenue);
 
@@ -111,7 +129,7 @@ export default function Dashboard() {
         return;
     }
 
-    const headers = ["Producto", "Cantidad Vendida", "Ingresos (COP)"];
+    const headers = ["Producto", "Cantidad Vendida (Neta)", "Ingresos (COP)"];
     const rows = sortedProductSales.map(([, data]) => [
         `"${data.name.replace(/"/g, '""')}"`, // Escape double quotes
         data.quantity,
@@ -144,7 +162,7 @@ export default function Dashboard() {
             {isLoading ? 'Actualizando...' : 'Actualizar'}
         </Button>
       </PageHeader>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
@@ -207,15 +225,29 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
+         <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Artículos Devueltos</CardTitle>
+                <Undo2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">
+                +{totalReturnedItems}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                Total de artículos devueltos al stock
+                </p>
+            </CardContent>
+        </Card>
       </div>
 
       <div className="mt-8">
         <Card>
             <CardHeader className="flex items-center justify-between flex-row">
                 <div>
-                    <CardTitle>Ventas por Producto</CardTitle>
+                    <CardTitle>Ventas Netas por Producto</CardTitle>
                     <CardDescription>
-                    Ingresos y unidades vendidas para cada producto.
+                    Ingresos y unidades vendidas (descontando devoluciones) para cada producto.
                     </CardDescription>
                 </div>
                 <Button variant="outline" onClick={handleExportCSV}>
