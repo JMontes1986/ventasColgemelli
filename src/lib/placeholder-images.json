@@ -1,3 +1,4 @@
+
 {
   "placeholderImages": [
     {
@@ -41,6 +42,54 @@
       "description": "Placeholder for a QR code",
       "imageUrl": "https://picsum.photos/seed/qrcode/200/200",
       "imageHint": "qr code"
+    },
+    {
+      "id": "food-carne-asada",
+      "description": "Image of grilled meat",
+      "imageUrl": "https://picsum.photos/seed/carne/400/400",
+      "imageHint": "grilled meat"
+    },
+    {
+      "id": "food-lechona",
+      "description": "Image of roast pork",
+      "imageUrl": "https://picsum.photos/seed/lechona/400/400",
+      "imageHint": "roast pork"
+    },
+    {
+      "id": "food-frijoles",
+      "description": "Image of bean stew",
+      "imageUrl": "https://picsum.photos/seed/frijoles/400/400",
+      "imageHint": "bean stew"
+    },
+    {
+      "id": "food-sancocho",
+      "description": "Image of beef soup",
+      "imageUrl": "https://picsum.photos/seed/sancocho/400/400",
+      "imageHint": "beef soup"
+    },
+    {
+      "id": "food-tamal",
+      "description": "Image of a tamale",
+      "imageUrl": "https://picsum.photos/seed/tamal/400/400",
+      "imageHint": "tamale"
+    },
+    {
+      "id": "food-chorizo",
+      "description": "Image of sausage",
+      "imageUrl": "https://picsum.photos/seed/chorizo/400/400",
+      "imageHint": "sausage"
+    },
+    {
+      "id": "food-gaseosa",
+      "description": "Image of a soda can",
+      "imageUrl": "https://picsum.photos/seed/soda/400/400",
+      "imageHint": "soda can"
+    },
+    {
+      "id": "food-agua",
+      "description": "Image of a water bottle",
+      "imageUrl": "https://picsum.photos/seed/water/400/400",
+      "imageHint": "water bottle"
     }
   ]
 }

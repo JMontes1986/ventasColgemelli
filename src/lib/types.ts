@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'cashier' | 'seller' | 'auditor' | 'readonly';
 
 export type User = {
@@ -58,4 +59,14 @@ export type AuditLog = {
   userName: string;
   action: AuditLogAction;
   details: string;
+};
+
+export type Product = {
+    id: string;
+    name: string;
+    price: number;
+    stock: number;
+    category: string;
+    imageUrl: string;
+    imageHint: string;
 };

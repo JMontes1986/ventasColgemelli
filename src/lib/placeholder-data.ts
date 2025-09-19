@@ -1,4 +1,5 @@
-import type { User, Ticket, Order, CashboxSession, AuditLog } from '@/lib/types';
+
+import type { User, Ticket, Order, CashboxSession, AuditLog, Product } from '@/lib/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl || '';
@@ -36,4 +37,15 @@ export const mockAuditLogs: AuditLog[] = [
     { id: 'al-3', timestamp: '2024-05-21T12:01:00Z', userId: 'user-3', userName: 'Sofia Gomez', action: 'PAYMENT_CONFIRM', details: 'Payment confirmed for order order-2.' },
     { id: 'al-4', timestamp: '2024-05-20T10:00:00Z', userId: 'user-1', userName: 'Ana Garcia', action: 'TICKET_ISSUE', details: 'Issued 50 new tickets.' },
     { id: 'al-5', timestamp: '2024-05-20T09:00:00Z', userId: 'user-1', userName: 'Ana Garcia', action: 'USER_ROLE_CHANGE', details: 'Role for maria.rodriguez@colegemelli.edu changed to readonly.' },
+];
+
+export const mockProducts: Product[] = [
+    { id: 'prod-1', name: 'Carne Asada', price: 12.50, stock: 50, category: 'Platos Fuertes', imageUrl: findImage('food-carne-asada'), imageHint: 'grilled meat' },
+    { id: 'prod-2', name: 'Lechona', price: 15.00, stock: 30, category: 'Platos Fuertes', imageUrl: findImage('food-lechona'), imageHint: 'roast pork' },
+    { id: 'prod-3', name: 'Frijoles con Garra', price: 10.00, stock: 60, category: 'Platos Fuertes', imageUrl: findImage('food-frijoles'), imageHint: 'bean stew' },
+    { id: 'prod-4', name: 'Sancocho de Gallina', price: 11.00, stock: 40, category: 'Sopas', imageUrl: findImage('food-sancocho'), imageHint: 'beef soup' },
+    { id: 'prod-5', name: 'Tamal', price: 8.00, stock: 80, category: 'Desayunos', imageUrl: findImage('food-tamal'), imageHint: 'tamale' },
+    { id: 'prod-6', name: 'Chorizo Santarrosano', price: 5.50, stock: 100, category: 'Aperitivos', imageUrl: findImage('food-chorizo'), imageHint: 'sausage' },
+    { id: 'prod-7', name: 'Gaseosa', price: 2.50, stock: 120, category: 'Bebidas', imageUrl: findImage('food-gaseosa'), imageHint: 'soda can' },
+    { id: 'prod-8', name: 'Botella de Agua', price: 1.00, stock: 150, category: 'Bebidas', imageUrl: findImage('food-agua'), imageHint: 'water bottle' },
 ];
