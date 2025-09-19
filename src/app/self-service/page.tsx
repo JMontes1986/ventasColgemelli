@@ -154,7 +154,12 @@ export default function SelfServicePage() {
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-  const filteredHistory = allPurchases.filter(p => p.cedula.includes(searchCedula));
+  const filteredHistory = allPurchases.filter(p => {
+        if(p.cedula){
+           return p.cedula.includes(searchCedula)
+        }
+        return false;
+   });
 
   return (
     <div className="min-h-screen bg-background">
@@ -385,5 +390,8 @@ export default function SelfServicePage() {
       </main>
     </div>
   );
+
+    
+
 
     
