@@ -1,12 +1,20 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public read access to the products collection
     match /products/{productId} {
       allow read: if true;
-      allow write: if false; // Keep writes restricted
+      allow write: if request.auth != null; // Allow writes only for authenticated users (admins/cashiers)
+    }
+
+    match /purchases/{purchaseId} {
+      allow create: if true; // Allow anyone to create a new purchase
+      allow read, update, delete: if false; // Disallow reading/modifying/deleting existing purchases
+    }
+
+    // Default rule: deny all access to other collections
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
