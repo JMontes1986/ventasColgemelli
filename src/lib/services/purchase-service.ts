@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, query, where, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc } from "firebase/firestore";
 import type { Purchase, NewPurchase } from "@/lib/types";
 
 // Function to get a single purchase by its ID
@@ -34,10 +34,32 @@ export async function getPurchasesByCelular(celular: string): Promise<Purchase[]
   return purchaseList;
 }
 
-
-// Function to add a new purchase to Firestore
+// Function to add a new purchase to Firestore with a custom ID
 export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
-  const purchasesCol = collection(db, 'purchases');
-  const docRef = await addDoc(purchasesCol, purchase);
-  return { id: docRef.id, ...purchase };
+  const counterRef = doc(db, "counters", "purchaseCounter");
+
+  // Get the first letter of the first item, or 'X' if cart is empty.
+  const firstItemInitial = purchase.items.length > 0 
+    ? purchase.items[0].name.charAt(0).toUpperCase()
+    : 'X';
+
+  // Increment the counter and create the new purchase in a transaction
+  const newPurchaseId = await runTransaction(db, async (transaction) => {
+    const counterDoc = await transaction.get(counterRef);
+    
+    let newCount = 1;
+    if (counterDoc.exists()) {
+      newCount = counterDoc.data().count + 1;
+    }
+    
+    transaction.set(counterRef, { count: newCount }, { merge: true });
+    
+    const formattedCount = String(newCount).padStart(4, '0');
+    return `CG${firstItemInitial}${formattedCount}`;
+  });
+
+  const purchaseRef = doc(db, 'purchases', newPurchaseId);
+  await setDoc(purchaseRef, purchase);
+
+  return { id: newPurchaseId, ...purchase };
 }
