@@ -66,8 +66,8 @@ function ProductForm({
             setPrice(initialData.price.toString());
             setStock(initialData.stock.toString());
             setImageUrl(initialData.imageUrl);
-            setIsSelfService(initialData.isSelfService || false);
-            setIsPosAvailable(initialData.isPosAvailable ?? true);
+            setIsSelfService(initialData.isSelfService);
+            setIsPosAvailable(initialData.isPosAvailable);
         } else if (isOpen && mode === 'create') {
             setName('');
             setPrice('');
@@ -217,7 +217,7 @@ export default function ProductsPage() {
       }
     }
     loadProducts();
-  }, [toast]);
+  }, []);
 
   const handleProductAdded = (newProduct: Product) => {
     setProducts(prevProducts => [...prevProducts, newProduct]);
