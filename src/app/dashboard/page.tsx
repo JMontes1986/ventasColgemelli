@@ -44,6 +44,7 @@ type ProductSales = {
     [productId: string]: {
         name: string;
         quantity: number;
+        revenue: number;
     }
 }
 
@@ -71,7 +72,7 @@ export default function Dashboard() {
       }
     }
     loadData();
-  }, []);
+  }, [toast]);
 
   const paidPurchases = purchases.filter((p) => p.status === "paid" || p.status === "delivered");
   const totalRevenue = paidPurchases.reduce((sum, p) => sum + p.total, 0);
@@ -87,13 +88,14 @@ export default function Dashboard() {
     .reduce((acc, item) => {
         if (!acc[item.id]) {
             const product = products.find(p => p.id === item.id);
-            acc[item.id] = { name: product?.name || item.name, quantity: 0 };
+            acc[item.id] = { name: product?.name || item.name, quantity: 0, revenue: 0 };
         }
         acc[item.id].quantity += item.quantity;
+        acc[item.id].revenue += item.price * item.quantity;
         return acc;
     }, {} as ProductSales);
 
-  const sortedProductSales = Object.entries(productSales).sort(([,a],[,b]) => b.quantity - a.quantity);
+  const sortedProductSales = Object.entries(productSales).sort(([,a],[,b]) => b.revenue - a.revenue);
 
 
   return (
@@ -160,7 +162,7 @@ export default function Dashboard() {
             <CardHeader>
                 <CardTitle>Ventas por Producto</CardTitle>
                 <CardDescription>
-                Unidades vendidas para cada producto.
+                Ingresos y unidades vendidas para cada producto.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -172,9 +174,10 @@ export default function Dashboard() {
                             <Card key={productId}>
                                 <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-base font-medium">{data.name}</CardTitle>
+                                    <span className="text-sm font-normal text-muted-foreground">+{data.quantity} unidades</span>
                                 </CardHeader>
-                                <CardContent className="p-4">
-                                    <div className="text-2xl font-bold">+{data.quantity} <span className="text-sm font-normal text-muted-foreground">unidades</span></div>
+                                <CardContent className="p-4 pt-0">
+                                    <div className="text-2xl font-bold">{formatCurrency(data.revenue)}</div>
                                 </CardContent>
                             </Card>
                         ))}
