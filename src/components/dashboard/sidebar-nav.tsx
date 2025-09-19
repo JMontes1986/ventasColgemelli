@@ -15,7 +15,6 @@ import {
 import { Logo } from "@/components/icons";
 import {
   LayoutDashboard,
-  Ticket,
   ShoppingCart,
   QrCode,
   Archive,
