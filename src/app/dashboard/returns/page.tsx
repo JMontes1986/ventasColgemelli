@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Undo2, CheckCircle, PackageSearch } from "lucide-react";
 import { getProducts, increaseProductStock } from '@/lib/services/product-service';
-import type { Product } from '@/lib/types';
+import type { Product, Return } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   Select,
@@ -18,82 +18,113 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency } from '@/lib/utils';
+import { addReturn, getReturns } from '@/lib/services/return-service';
+import { useMockAuth } from '@/hooks/use-mock-auth';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function ReturnsPage() {
     const [products, setProducts] = useState<Product[]>([]);
+    const [returnsHistory, setReturnsHistory] = useState<Return[]>([]);
     const [selectedProductId, setSelectedProductId] = useState<string>('');
     const [quantity, setQuantity] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [lastReturn, setLastReturn] = useState<{ name: string; quantity: number } | null>(null);
     const { toast } = useToast();
+    const { role, users } = useMockAuth();
 
     useEffect(() => {
-        async function loadProducts() {
+        async function loadInitialData() {
             setIsLoading(true);
             try {
-                const fetchedProducts = await getProducts();
+                const [fetchedProducts, fetchedReturns] = await Promise.all([
+                    getProducts(),
+                    getReturns()
+                ]);
                 setProducts(fetchedProducts);
-            } catch (error)
-                 {
-                console.error("Error fetching products:", error);
+                setReturnsHistory(fetchedReturns);
+            } catch (error) {
+                console.error("Error fetching data:", error);
                 toast({
                     variant: 'destructive',
                     title: 'Error de Carga',
-                    description: 'No se pudieron cargar los productos.'
+                    description: 'No se pudieron cargar los datos iniciales.'
                 });
             } finally {
                 setIsLoading(false);
             }
         }
-        loadProducts();
+        loadInitialData();
     }, []);
 
     const handleReturn = async (e: React.FormEvent) => {
         e.preventDefault();
         
+        const currentUser = users.find(u => u.role === role);
+        if (!currentUser) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario actual.' });
+            return;
+        }
+        
         if (!selectedProductId) {
-            toast({
-                variant: 'destructive',
-                title: 'Campo Requerido',
-                description: 'Por favor seleccione un producto.'
-            });
+            toast({ variant: 'destructive', title: 'Campo Requerido', description: 'Por favor seleccione un producto.' });
             return;
         }
 
         if (quantity <= 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Cantidad Inválida',
-                description: 'La cantidad a devolver debe ser mayor que cero.'
-            });
+            toast({ variant: 'destructive', title: 'Cantidad Inválida', description: 'La cantidad a devolver debe ser mayor que cero.' });
             return;
         }
 
         setIsProcessing(true);
         setLastReturn(null);
 
+        const returnedProduct = products.find(p => p.id === selectedProductId);
+        if (!returnedProduct) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Producto seleccionado no válido.' });
+             setIsProcessing(false);
+             return;
+        }
+
         try {
+            // This is now a two-step process inside a single function
+            // 1. Increase stock
             await increaseProductStock(selectedProductId, quantity);
+
+            // 2. Log the return
+            const newReturnRecord = await addReturn({
+                productId: selectedProductId,
+                productName: returnedProduct.name,
+                quantity: quantity,
+                returnedAt: new Date().toLocaleString('es-CO'),
+                processedByUserId: currentUser.id,
+                processedByUserName: currentUser.name,
+            });
             
-            const returnedProduct = products.find(p => p.id === selectedProductId);
+            // Update local state for products
+            setProducts(prevProducts => 
+                prevProducts.map(p => 
+                    p.id === selectedProductId 
+                    ? { ...p, stock: p.stock + quantity } 
+                    : p
+                )
+            );
             
-            if (returnedProduct) {
-                // Update local state to reflect new stock
-                setProducts(prevProducts => 
-                    prevProducts.map(p => 
-                        p.id === selectedProductId 
-                        ? { ...p, stock: p.stock + quantity } 
-                        : p
-                    )
-                );
-                setLastReturn({ name: returnedProduct.name, quantity });
-            }
+            // Update local state for returns history
+            setReturnsHistory(prevHistory => [newReturnRecord, ...prevHistory]);
+
+            setLastReturn({ name: returnedProduct.name, quantity });
             
             toast({
                 title: 'Devolución Exitosa',
-                description: `Se devolvió ${returnedProduct?.name} (x${quantity}) al stock.`,
+                description: `Se devolvió ${returnedProduct.name} (x${quantity}) al stock.`,
             });
 
             // Reset form
@@ -167,7 +198,7 @@ export default function ReturnsPage() {
                             {selectedProduct && (
                                 <div className="text-sm text-muted-foreground">
                                     <p>Stock actual: {selectedProduct.stock}</p>
-                                    <p>Stock después de la devolución: {selectedProduct.stock + quantity}</p>
+                                    <p>Stock después de la devolución: {selectedProduct.stock + (quantity || 0)}</p>
                                 </div>
                             )}
                         </CardContent>
@@ -204,6 +235,53 @@ export default function ReturnsPage() {
                                 </p>
                             </div>
                         )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="mt-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Historial de Devoluciones</CardTitle>
+                        <CardDescription>
+                            Registro de todas las devoluciones de productos al inventario.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Producto</TableHead>
+                                    <TableHead>Cantidad</TableHead>
+                                    <TableHead>Procesado por</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                            Cargando historial...
+                                        </TableCell>
+                                    </TableRow>
+                                ) : returnsHistory.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                            No hay devoluciones registradas.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    returnsHistory.map((item) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell>{item.returnedAt}</TableCell>
+                                        <TableCell className="font-medium">{item.productName}</TableCell>
+                                        <TableCell>+{item.quantity}</TableCell>
+                                        <TableCell>{item.processedByUserName}</TableCell>
+                                    </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
             </div>
