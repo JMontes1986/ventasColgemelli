@@ -19,10 +19,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Ticket, DollarSign, Users, Activity } from "lucide-react";
+import { Ticket, DollarSign, Users, ShoppingCart, UserCog } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import type { Purchase } from "@/lib/types";
+import type { Purchase, Product } from "@/lib/types";
 import { getPurchases } from "@/lib/services/purchase-service";
+import { getProducts } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
 
 const statusTranslations: Record<Purchase['status'], string> = {
@@ -39,35 +40,61 @@ const statusColors: Record<Purchase['status'], string> = {
     cancelled: 'bg-red-500/20 text-red-700',
 };
 
+type ProductSales = {
+    [productId: string]: {
+        name: string;
+        quantity: number;
+    }
+}
+
 export default function Dashboard() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    async function loadPurchases() {
+    async function loadData() {
       setIsLoading(true);
       try {
-        const fetchedPurchases = await getPurchases();
+        const [fetchedPurchases, fetchedProducts] = await Promise.all([
+          getPurchases(),
+          getProducts(),
+        ]);
         setPurchases(fetchedPurchases);
+        setProducts(fetchedProducts);
       } catch (error) {
-        console.error("Error fetching purchases:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar las compras." });
+        console.error("Error fetching data:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos del panel." });
       } finally {
         setIsLoading(false);
       }
     }
-    loadPurchases();
+    loadData();
   }, []);
 
   const paidPurchases = purchases.filter((p) => p.status === "paid" || p.status === "delivered");
   const totalRevenue = paidPurchases.reduce((sum, p) => sum + p.total, 0);
-  const ticketsSold = purchases
-    .flatMap(p => p.items)
-    .filter(item => item.name.startsWith('CG')) // A simple way to identify tickets
-    .reduce((sum, item) => sum + item.quantity, 0);
+
+  const selfServiceRevenue = paidPurchases
+    .filter(p => !p.sellerId) // Self-service purchases don't have a sellerId
+    .reduce((sum, p) => sum + p.total, 0);
 
   const activeUsers = new Set(purchases.map(p => p.sellerId).filter(Boolean)).size;
+
+  const productSales = paidPurchases
+    .flatMap(p => p.items)
+    .reduce((acc, item) => {
+        if (!acc[item.id]) {
+            const product = products.find(p => p.id === item.id);
+            acc[item.id] = { name: product?.name || item.name, quantity: 0 };
+        }
+        acc[item.id].quantity += item.quantity;
+        return acc;
+    }, {} as ProductSales);
+
+  const sortedProductSales = Object.entries(productSales).sort(([,a],[,b]) => b.quantity - a.quantity);
+
 
   return (
     <div>
@@ -90,15 +117,13 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Artículos Vendidos</CardTitle>
-            <Ticket className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Ingresos Autogestión</CardTitle>
+            <UserCog className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              +{purchases.flatMap(p => p.items).reduce((sum, item) => sum + item.quantity, 0)}
-            </div>
+            <div className="text-2xl font-bold">{formatCurrency(selfServiceRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              Total de artículos en compras
+              Ventas del portal de autogestión
             </p>
           </CardContent>
         </Card>
@@ -114,26 +139,51 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tasa de Entrega</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Artículos Vendidos</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(
-                (purchases.filter((p) => p.status === "delivered").length /
-                  (paidPurchases.length || 1)) *
-                100
-              ).toFixed(1)}
-              %
+              +{paidPurchases.flatMap(p => p.items).reduce((sum, item) => sum + item.quantity, 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              De todas las compras pagadas
+              Total de artículos en compras pagadas
             </p>
           </CardContent>
         </Card>
       </div>
+
+      <div className="mt-8">
+        <Card>
+            <CardHeader>
+                <CardTitle>Ventas por Producto</CardTitle>
+                <CardDescription>
+                Unidades vendidas para cada producto.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 {isLoading ? (
+                    <div className="h-24 text-center flex items-center justify-center">Calculando ventas...</div>
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        {sortedProductSales.map(([productId, data]) => (
+                            <Card key={productId}>
+                                <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-base font-medium">{data.name}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4">
+                                    <div className="text-2xl font-bold">+{data.quantity} <span className="text-sm font-normal text-muted-foreground">unidades</span></div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                 )}
+            </CardContent>
+        </Card>
+      </div>
+
       <div className="mt-8">
         <Card>
           <CardHeader>
