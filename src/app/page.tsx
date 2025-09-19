@@ -13,18 +13,18 @@ import { useToast } from "@/hooks/use-toast";
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === "administrador@colegemelli.edu" && password === "Gemelli.2025") {
+    if (username === "administrador" && password === "Gemelli.2025") {
       router.push("/dashboard");
     } else {
       toast({
         variant: "destructive",
         title: "Error de autenticación",
-        description: "El correo electrónico o la contraseña son incorrectos.",
+        description: "El usuario o la contraseña son incorrectos.",
       });
     }
   };
@@ -47,14 +47,14 @@ export default function LoginPage() {
         <CardContent>
           <form id="login-form" onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="username">Usuario</Label>
               <Input 
-                id="email" 
-                type="email" 
-                placeholder="usuario@colegemelli.edu" 
+                id="username" 
+                type="text" 
+                placeholder="administrador" 
                 required 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div className="space-y-2">
