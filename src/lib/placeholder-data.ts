@@ -5,7 +5,7 @@ import { PlaceHolderImages } from './placeholder-images';
 const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl || '';
 
 export const mockUsers: User[] = [
-  { id: 'user-1', name: 'Ana Garcia', email: 'ana.garcia@colegemelli.edu', role: 'admin', avatarUrl: findImage('avatar-1') },
+  { id: 'user-1', name: 'Administrador', email: 'administrador@colegemelli.edu', role: 'admin', avatarUrl: findImage('avatar-1') },
   { id: 'user-2', name: 'Carlos Ruiz', email: 'carlos.ruiz@colegemelli.edu', role: 'cashier', avatarUrl: findImage('avatar-2') },
   { id: 'user-3', name: 'Sofia Gomez', email: 'sofia.gomez@colegemelli.edu', role: 'seller', avatarUrl: findImage('avatar-3') },
   { id: 'user-4', name: 'David Chen', email: 'david.chen@colegemelli.edu', role: 'auditor', avatarUrl: findImage('avatar-4') },
