@@ -29,8 +29,6 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 import type { UserRole } from "@/lib/types";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RoleGate } from "../role-gate";
 
 const roleTranslations: Record<UserRole, string> = {
@@ -109,22 +107,6 @@ export function SidebarNav() {
         </RoleGate>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex flex-col gap-2 p-2">
-            <Label htmlFor="role-switcher" className="text-xs text-sidebar-foreground/70">Selector de Rol (Demo)</Label>
-            <Select value={role} onValueChange={(value) => setMockRole(value as UserRole)}>
-                <SelectTrigger id="role-switcher" className="bg-sidebar-accent border-sidebar-border text-sidebar-accent-foreground">
-                    <SelectValue placeholder="Seleccionar rol" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="admin">{roleTranslations.admin}</SelectItem>
-                    <SelectItem value="cashier">{roleTranslations.cashier}</SelectItem>
-                    <SelectItem value="seller">{roleTranslations.seller}</SelectItem>
-                    <SelectItem value="auditor">{roleTranslations.auditor}</SelectItem>
-                    <SelectItem value="readonly">{roleTranslations.readonly}</SelectItem>
-                </SelectContent>
-            </Select>
-        </div>
-        <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton icon={LogOut}>Cerrar Sesión</SidebarMenuButton>
