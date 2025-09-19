@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Product } from '@/lib/types';
 import { mockProducts } from '@/lib/placeholder-data';
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -18,9 +18,11 @@ import {
   TableBody,
   TableCell,
   TableRow,
+  TableHeader,
+  TableHead
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, ShoppingCart, Sparkles } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, Sparkles, History } from "lucide-react";
 import { formatCurrency } from '@/lib/utils';
 import Image from 'next/image';
 import {
@@ -40,10 +42,31 @@ type CartItem = {
   type: 'product';
 };
 
+type Purchase = {
+    code: string;
+    date: string;
+    total: number;
+    items: CartItem[];
+}
+
+const PURCHASE_HISTORY_KEY = 'purchase_history';
+
 export default function SelfServicePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentCode, setPaymentCode] = useState<string | null>(null);
+  const [purchaseHistory, setPurchaseHistory] = useState<Purchase[]>([]);
+
+  useEffect(() => {
+    try {
+        const storedHistory = localStorage.getItem(PURCHASE_HISTORY_KEY);
+        if (storedHistory) {
+            setPurchaseHistory(JSON.parse(storedHistory));
+        }
+    } catch (error) {
+        console.warn("Could not read purchase history from localStorage", error);
+    }
+  }, []);
 
   const addToCart = (item: Product) => {
     setCart((prevCart) => {
@@ -80,8 +103,22 @@ export default function SelfServicePage() {
 
   const handlePayment = () => {
     if (cart.length === 0) return;
-    // Simulate generating a unique payment code
     const code = `CG-PAY-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const newPurchase: Purchase = {
+        code,
+        date: new Date().toLocaleString('es-CO'),
+        total: subtotal,
+        items: cart
+    };
+
+    const updatedHistory = [newPurchase, ...purchaseHistory];
+    setPurchaseHistory(updatedHistory);
+    try {
+        localStorage.setItem(PURCHASE_HISTORY_KEY, JSON.stringify(updatedHistory));
+    } catch (error) {
+        console.warn("Could not save purchase history to localStorage", error);
+    }
+
     setPaymentCode(code);
     setIsPaymentModalOpen(true);
   };
@@ -117,36 +154,34 @@ export default function SelfServicePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <div className="lg:col-span-2">
-                <ScrollArea className="h-[75vh]">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pr-4">
-                        {mockProducts.map((product) => (
-                        <Card key={product.id} className="overflow-hidden group">
-                            <div className="aspect-square relative">
-                            <Image
-                                src={product.imageUrl}
-                                alt={product.name}
-                                fill
-                                className="object-cover transition-transform group-hover:scale-105"
-                                data-ai-hint={product.imageHint}
-                            />
-                            <div className="absolute inset-0 bg-black/20" />
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {mockProducts.map((product) => (
+                    <Card key={product.id} className="overflow-hidden group">
+                        <div className="aspect-square relative">
+                        <Image
+                            src={product.imageUrl}
+                            alt={product.name}
+                            fill
+                            className="object-cover transition-transform group-hover:scale-105"
+                            data-ai-hint={product.imageHint}
+                        />
+                        <div className="absolute inset-0 bg-black/20" />
+                        </div>
 
-                            <CardContent className="p-4">
-                                <h3 className="text-lg font-semibold">{product.name}</h3>
-                                <p className="text-sm text-muted-foreground">{product.category}</p>
-                                <div className="flex justify-between items-center mt-2">
-                                    <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
-                                    <Button onClick={() => addToCart(product)}>
-                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                        Agregar
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        ))}
-                    </div>
-                </ScrollArea>
+                        <CardContent className="p-4">
+                            <h3 className="text-lg font-semibold">{product.name}</h3>
+                            <p className="text-sm text-muted-foreground">{product.category}</p>
+                            <div className="flex justify-between items-center mt-2">
+                                <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
+                                <Button onClick={() => addToCart(product)}>
+                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                    Agregar
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    ))}
+                </div>
             </div>
 
             <div>
@@ -155,7 +190,7 @@ export default function SelfServicePage() {
                 <CardTitle>Carrito de Compras</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ScrollArea className="h-80 mb-4">
+                    <ScrollArea className="h-60 mb-4">
                         {cart.length === 0 ? (
                             <p className="text-center text-blue-200">El carrito está vacío</p>
                         ) : (
@@ -209,6 +244,42 @@ export default function SelfServicePage() {
             </Card>
             </div>
         </div>
+
+         <div className="mt-12">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <History className="h-6 w-6" />
+                        Historial de Compras
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {purchaseHistory.length === 0 ? (
+                        <p className="text-center text-muted-foreground">No hay compras en su historial.</p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Código de Pago</TableHead>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {purchaseHistory.map((purchase) => (
+                                    <TableRow key={purchase.code}>
+                                        <TableCell className="font-mono">{purchase.code}</TableCell>
+                                        <TableCell>{purchase.date}</TableCell>
+                                        <TableCell className="text-right font-medium">{formatCurrency(purchase.total)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+
         <Dialog open={isPaymentModalOpen} onOpenChange={closeModal}>
             <DialogContent>
                 <DialogHeader>
@@ -230,4 +301,5 @@ export default function SelfServicePage() {
       </main>
     </div>
   );
-}
+
+    
