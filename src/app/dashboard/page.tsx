@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { DollarSign, Users, ShoppingCart, UserCog, RefreshCw } from "lucide-react";
+import { DollarSign, Users, ShoppingCart, UserCog, RefreshCw, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import type { Purchase, Product } from "@/lib/types";
 import { getPurchases } from "@/lib/services/purchase-service";
@@ -70,7 +70,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, []); // toast was removed from dependencies
+  }, [toast]);
 
   useEffect(() => {
     loadData();
@@ -100,6 +100,37 @@ export default function Dashboard() {
     }, {} as ProductSales);
 
   const sortedProductSales = Object.entries(productSales).sort(([,a],[,b]) => b.revenue - a.revenue);
+
+  const handleExportCSV = () => {
+    if (sortedProductSales.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "No hay datos",
+            description: "No hay datos de ventas por producto para exportar."
+        });
+        return;
+    }
+
+    const headers = ["Producto", "Cantidad Vendida", "Ingresos (COP)"];
+    const rows = sortedProductSales.map(([, data]) => [
+        `"${data.name.replace(/"/g, '""')}"`, // Escape double quotes
+        data.quantity,
+        data.revenue
+    ]);
+
+    let csvContent = "data:text/csv;charset=utf-8," 
+        + headers.join(",") + "\n" 
+        + rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "ventas_por_producto.csv");
+    document.body.appendChild(link);
+
+    link.click();
+    document.body.removeChild(link);
+};
 
 
   return (
@@ -180,11 +211,17 @@ export default function Dashboard() {
 
       <div className="mt-8">
         <Card>
-            <CardHeader>
-                <CardTitle>Ventas por Producto</CardTitle>
-                <CardDescription>
-                Ingresos y unidades vendidas para cada producto.
-                </CardDescription>
+            <CardHeader className="flex items-center justify-between flex-row">
+                <div>
+                    <CardTitle>Ventas por Producto</CardTitle>
+                    <CardDescription>
+                    Ingresos y unidades vendidas para cada producto.
+                    </CardDescription>
+                </div>
+                <Button variant="outline" onClick={handleExportCSV}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar a CSV
+                </Button>
             </CardHeader>
             <CardContent>
                  {isLoading ? (
