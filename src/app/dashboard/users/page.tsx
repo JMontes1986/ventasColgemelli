@@ -26,28 +26,36 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { mockUsers } from "@/lib/placeholder-data";
 import type { UserRole } from "@/lib/types";
 
+const roleTranslations: Record<UserRole, string> = {
+  admin: "Admin",
+  cashier: "Cajero",
+  seller: "Vendedor",
+  auditor: "Auditor",
+  readonly: "Solo Lectura",
+};
+
 export default function UsersPage() {
   return (
     <div>
       <PageHeader
-        title="User Management"
-        description="Administer user roles and permissions."
+        title="Gestión de Usuarios"
+        description="Administrar roles y permisos de usuario."
       />
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
+          <CardTitle>Usuarios</CardTitle>
           <CardDescription>
-            Assign roles to users to control their access to the system.
+            Asigne roles a los usuarios para controlar su acceso al sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Usuario</TableHead>
+                <TableHead>Correo Electrónico</TableHead>
+                <TableHead>Rol</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -66,19 +74,19 @@ export default function UsersPage() {
                   <TableCell>
                     <Select defaultValue={user.role}>
                         <SelectTrigger className="w-36">
-                            <SelectValue placeholder="Select role" />
+                            <SelectValue placeholder="Seleccionar rol" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="cashier">Cashier</SelectItem>
-                            <SelectItem value="seller">Seller</SelectItem>
-                            <SelectItem value="auditor">Auditor</SelectItem>
-                            <SelectItem value="readonly">Read-Only</SelectItem>
+                            <SelectItem value="admin">{roleTranslations.admin}</SelectItem>
+                            <SelectItem value="cashier">{roleTranslations.cashier}</SelectItem>
+                            <SelectItem value="seller">{roleTranslations.seller}</SelectItem>
+                            <SelectItem value="auditor">{roleTranslations.auditor}</SelectItem>
+                            <SelectItem value="readonly">{roleTranslations.readonly}</SelectItem>
                         </SelectContent>
                     </Select>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline">Save Role</Button>
+                    <Button variant="outline">Guardar Rol</Button>
                   </TableCell>
                 </TableRow>
               ))}

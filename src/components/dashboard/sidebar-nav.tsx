@@ -32,19 +32,26 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RoleGate } from "../role-gate";
 
+const roleTranslations: Record<UserRole, string> = {
+  admin: "Admin",
+  cashier: "Cajero",
+  seller: "Vendedor",
+  auditor: "Auditor",
+  readonly: "Solo Lectura",
+};
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", allowedRoles: ['admin', 'cashier', 'seller', 'auditor', 'readonly'] },
-  { href: "/dashboard/sales", icon: ShoppingCart, label: "Sales", allowedRoles: ['admin', 'cashier', 'seller'] },
-  { href: "/dashboard/tickets", icon: Ticket, label: "Tickets", allowedRoles: ['admin', 'seller'] },
-  { href: "/dashboard/products", icon: Package, label: "Products", allowedRoles: ['admin', 'cashier'] },
-  { href: "/dashboard/redeem", icon: QrCode, label: "Redeem", allowedRoles: ['admin', 'auditor'] },
-  { href: "/dashboard/cashbox", icon: Archive, label: "Cashbox", allowedRoles: ['admin', 'cashier'] },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Panel", allowedRoles: ['admin', 'cashier', 'seller', 'auditor', 'readonly'] },
+  { href: "/dashboard/sales", icon: ShoppingCart, label: "Ventas", allowedRoles: ['admin', 'cashier', 'seller'] },
+  { href: "/dashboard/tickets", icon: Ticket, label: "Boletos", allowedRoles: ['admin', 'seller'] },
+  { href: "/dashboard/products", icon: Package, label: "Productos", allowedRoles: ['admin', 'cashier'] },
+  { href: "/dashboard/redeem", icon: QrCode, label: "Canjear", allowedRoles: ['admin', 'auditor'] },
+  { href: "/dashboard/cashbox", icon: Archive, label: "Caja", allowedRoles: ['admin', 'cashier'] },
 ];
 
 const adminNavItems = [
-    { href: "/dashboard/users", icon: Users, label: "Users", allowedRoles: ['admin'] },
-    { href: "/dashboard/audit", icon: ClipboardList, label: "Audit Log", allowedRoles: ['admin'] },
+    { href: "/dashboard/users", icon: Users, label: "Usuarios", allowedRoles: ['admin'] },
+    { href: "/dashboard/audit", icon: ClipboardList, label: "Auditoría", allowedRoles: ['admin'] },
 ]
 
 export function SidebarNav() {
@@ -102,24 +109,24 @@ export function SidebarNav() {
       </SidebarContent>
       <SidebarFooter>
         <div className="flex flex-col gap-2 p-2">
-            <Label htmlFor="role-switcher" className="text-xs text-sidebar-foreground/70">Demo Role Switcher</Label>
+            <Label htmlFor="role-switcher" className="text-xs text-sidebar-foreground/70">Selector de Rol (Demo)</Label>
             <Select value={role} onValueChange={(value) => setMockRole(value as UserRole)}>
                 <SelectTrigger id="role-switcher" className="bg-sidebar-accent border-sidebar-border text-sidebar-accent-foreground">
-                    <SelectValue placeholder="Select role" />
+                    <SelectValue placeholder="Seleccionar rol" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="cashier">Cashier</SelectItem>
-                    <SelectItem value="seller">Seller</SelectItem>
-                    <SelectItem value="auditor">Auditor</SelectItem>
-                    <SelectItem value="readonly">Read-Only</SelectItem>
+                    <SelectItem value="admin">{roleTranslations.admin}</SelectItem>
+                    <SelectItem value="cashier">{roleTranslations.cashier}</SelectItem>
+                    <SelectItem value="seller">{roleTranslations.seller}</SelectItem>
+                    <SelectItem value="auditor">{roleTranslations.auditor}</SelectItem>
+                    <SelectItem value="readonly">{roleTranslations.readonly}</SelectItem>
                 </SelectContent>
             </Select>
         </div>
         <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton icon={LogOut}>Log out</SidebarMenuButton>
+            <SidebarMenuButton icon={LogOut}>Cerrar Sesión</SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

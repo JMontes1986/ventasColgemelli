@@ -30,62 +30,62 @@ export default function Dashboard() {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
-        description="An overview of sales and ticket activity."
+        title="Panel de Control"
+        description="Un resumen de las ventas y la actividad de los boletos."
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Based on all paid orders
+              Basado en todos los pedidos pagados
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
+            <CardTitle className="text-sm font-medium">Boletos Vendidos</CardTitle>
             <Ticket className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{ticketsSold}</div>
             <p className="text-xs text-muted-foreground">
-              Total tickets sold and redeemed
+              Total de boletos vendidos y canjeados
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Sellers</CardTitle>
+            <CardTitle className="text-sm font-medium">Vendedores Activos</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{activeUsers}</div>
             <p className="text-xs text-muted-foreground">
-              Sellers with recorded transactions
+              Vendedores con transacciones registradas
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Redemption Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">Tasa de Canje</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {(
                 (mockTickets.filter((t) => t.status === "redeemed").length /
-                  ticketsSold) *
+                  (ticketsSold || 1)) *
                 100
               ).toFixed(1)}
               %
             </div>
             <p className="text-xs text-muted-foreground">
-              Of all tickets sold
+              De todos los boletos vendidos
             </p>
           </CardContent>
         </Card>
@@ -93,19 +93,19 @@ export default function Dashboard() {
       <div className="mt-8">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
+            <CardTitle>Ventas Recientes</CardTitle>
             <CardDescription>
-              A list of the most recent sales transactions.
+              Una lista de las transacciones de venta más recientes.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Seller</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>ID de Pedido</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Vendedor</TableHead>
+                  <TableHead className="text-right">Monto</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -121,9 +121,9 @@ export default function Dashboard() {
                             ? "secondary"
                             : "destructive"
                         }
-                        className={order.status === 'paid' ? 'bg-green-500/20 text-green-700 hover:bg-green-500/30' : ''}
+                        className={order.status === 'paid' ? 'bg-green-500/20 text-green-700 hover:bg-green-500/30 capitalize' : 'capitalize'}
                       >
-                        {order.status}
+                        {order.status === 'paid' ? 'Pagado' : order.status === 'pending' ? 'Pendiente' : 'Cancelado'}
                       </Badge>
                     </TableCell>
                     <TableCell>{order.sellerName}</TableCell>

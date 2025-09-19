@@ -32,11 +32,11 @@ export const mockCashboxSessions: CashboxSession[] = [
 ];
 
 export const mockAuditLogs: AuditLog[] = [
-    { id: 'al-1', timestamp: '2024-05-22T09:15:00Z', userId: 'user-4', userName: 'David Chen', action: 'TICKET_REDEEM', details: 'Ticket CG2024-C3D4 redeemed at gate A.' },
-    { id: 'al-2', timestamp: '2024-05-21T17:00:00Z', userId: 'user-2', userName: 'Carlos Ruiz', action: 'CASHBOX_CLOSE', details: 'Cashbox closed with total sales of $430.00.' },
-    { id: 'al-3', timestamp: '2024-05-21T12:01:00Z', userId: 'user-3', userName: 'Sofia Gomez', action: 'PAYMENT_CONFIRM', details: 'Payment confirmed for order order-2.' },
-    { id: 'al-4', timestamp: '2024-05-20T10:00:00Z', userId: 'user-1', userName: 'Ana Garcia', action: 'TICKET_ISSUE', details: 'Issued 50 new tickets.' },
-    { id: 'al-5', timestamp: '2024-05-20T09:00:00Z', userId: 'user-1', userName: 'Ana Garcia', action: 'USER_ROLE_CHANGE', details: 'Role for maria.rodriguez@colegemelli.edu changed to readonly.' },
+    { id: 'al-1', timestamp: '2024-05-22T09:15:00Z', userId: 'user-4', userName: 'David Chen', action: 'TICKET_REDEEM', details: 'Boleto CG2024-C3D4 canjeado en la puerta A.' },
+    { id: 'al-2', timestamp: '2024-05-21T17:00:00Z', userId: 'user-2', userName: 'Carlos Ruiz', action: 'CASHBOX_CLOSE', details: 'Caja cerrada con ventas totales de $430.00.' },
+    { id: 'al-3', timestamp: '2024-05-21T12:01:00Z', userId: 'user-3', userName: 'Sofia Gomez', action: 'PAYMENT_CONFIRM', details: 'Pago confirmado para el pedido order-2.' },
+    { id: 'al-4', timestamp: '2024-05-20T10:00:00Z', userId: 'user-1', userName: 'Administrador', action: 'TICKET_ISSUE', details: 'Se emitieron 50 nuevos boletos.' },
+    { id: 'al-5', timestamp: '2024-05-20T09:00:00Z', userId: 'user-1', userName: 'Administrador', action: 'USER_ROLE_CHANGE', details: 'El rol de maria.rodriguez@colegemelli.edu cambió a Solo Lectura.' },
 ];
 
 export const mockProducts: Product[] = [

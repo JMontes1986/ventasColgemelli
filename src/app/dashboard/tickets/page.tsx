@@ -37,34 +37,49 @@ export default function TicketsPage() {
     }
   };
 
+  const translateStatus = (status: string) => {
+    switch (status) {
+      case "available":
+        return "Disponible";
+      case "sold":
+        return "Vendido";
+      case "redeemed":
+        return "Canjeado";
+      case "void":
+        return "Anulado";
+      default:
+        return status;
+    }
+  }
+
   return (
     <div>
       <PageHeader
-        title="Tickets"
-        description="Manage, issue, and track all event tickets."
+        title="Boletos"
+        description="Gestionar, emitir y rastrear todos los boletos del evento."
       >
         <RoleGate allowedRoles={['admin']}>
             <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Issue Tickets
+            Emitir Boletos
             </Button>
         </RoleGate>
       </PageHeader>
       <Card>
         <CardHeader>
-          <CardTitle>Ticket Inventory</CardTitle>
+          <CardTitle>Inventario de Boletos</CardTitle>
           <CardDescription>
-            A list of all tickets in the system.
+            Una lista de todos los boletos en el sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Unique Code</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Issued At</TableHead>
-                <TableHead className="text-right">Price</TableHead>
+                <TableHead>Código Único</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Fecha de Emisión</TableHead>
+                <TableHead className="text-right">Precio</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -73,7 +88,7 @@ export default function TicketsPage() {
                   <TableCell className="font-mono">{ticket.uniqueCode}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn("capitalize", getStatusVariant(ticket.status))}>
-                      {ticket.status}
+                      {translateStatus(ticket.status)}
                     </Badge>
                   </TableCell>
                   <TableCell>

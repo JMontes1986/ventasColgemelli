@@ -10,56 +10,56 @@ export default function RedeemPage() {
     return (
         <div>
             <PageHeader
-                title="Redeem Ticket"
-                description="Scan or enter a ticket code to validate and redeem it."
+                title="Canjear Boleto"
+                description="Escanee o ingrese un código de boleto para validarlo y canjearlo."
             />
             <div className="grid gap-8 md:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Scan Ticket</CardTitle>
+                        <CardTitle>Escanear Boleto</CardTitle>
                         <CardDescription>
-                            Enter the unique code from the ticket's QR code below.
+                            Ingrese el código único del código QR del boleto a continuación.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="ticket-code">Ticket Code</Label>
-                                <Input id="ticket-code" placeholder="e.g., CG2024-C3D4" className="font-mono" />
+                                <Label htmlFor="ticket-code">Código del Boleto</Label>
+                                <Input id="ticket-code" placeholder="ej., CG2024-C3D4" className="font-mono" />
                             </div>
                         </form>
                     </CardContent>
                     <CardFooter>
                          <Button className="w-full">
                             <QrCode className="mr-2 h-4 w-4" />
-                            Redeem Ticket
+                            Canjear Boleto
                         </Button>
                     </CardFooter>
                 </Card>
 
                 <Card className="bg-muted/30">
                      <CardHeader>
-                        <CardTitle>Last Scan Status</CardTitle>
+                        <CardTitle>Estado del Último Escaneo</CardTitle>
                         <CardDescription>
-                            Result of the most recent redemption attempt.
+                            Resultado del intento de canje más reciente.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-8">
                         <TicketCheck className="h-16 w-16 text-green-500" />
-                        <h3 className="text-xl font-semibold">Ticket Redeemed Successfully</h3>
+                        <h3 className="text-xl font-semibold">Boleto Canjeado Exitosamente</h3>
                         <p className="text-muted-foreground">
-                           Code: <span className="font-mono">CG2024-C3D4</span>
+                           Código: <span className="font-mono">CG2024-C3D4</span>
                         </p>
                         <Badge variant="outline" className="bg-blue-500/20 text-blue-700">
-                            Redeemed
+                            Canjeado
                         </Badge>
                     </CardContent>
-                    {/* Example of an error state */}
+                    {/* Ejemplo de un estado de error */}
                     {/* <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-8">
                         <AlertTriangle className="h-16 w-16 text-destructive" />
-                        <h3 className="text-xl font-semibold">Invalid or Redeemed Ticket</h3>
+                        <h3 className="text-xl font-semibold">Boleto Inválido o Canjeado</h3>
                         <p className="text-muted-foreground">
-                           This ticket has already been used or does not exist.
+                           Este boleto ya ha sido utilizado o no existe.
                         </p>
                     </CardContent> */}
                 </Card>

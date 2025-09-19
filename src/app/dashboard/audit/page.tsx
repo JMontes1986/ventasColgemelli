@@ -41,24 +41,24 @@ export default function AuditPage() {
   return (
     <div>
       <PageHeader
-        title="Audit Log"
-        description="Review a log of all sensitive actions taken in the system."
+        title="Registro de Auditoría"
+        description="Revise un registro de todas las acciones sensibles realizadas en el sistema."
       />
       <Card>
         <CardHeader>
-          <CardTitle>Activity Log</CardTitle>
+          <CardTitle>Registro de Actividad</CardTitle>
           <CardDescription>
-            All recorded actions are displayed with the most recent first.
+            Todas las acciones registradas se muestran con la más reciente primero.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Details</TableHead>
+                <TableHead>Marca de Tiempo</TableHead>
+                <TableHead>Usuario</TableHead>
+                <TableHead>Acción</TableHead>
+                <TableHead>Detalles</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

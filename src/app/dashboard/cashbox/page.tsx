@@ -29,40 +29,40 @@ export default function CashboxPage() {
     return (
         <div>
             <PageHeader
-                title="Cashbox Management"
-                description="Open, close, and review cashbox sessions."
+                title="Gestión de Caja"
+                description="Abrir, cerrar y revisar las sesiones de caja."
             />
             <div className="grid gap-8 lg:grid-cols-3">
                 <div className="lg:col-span-1">
                     <Card>
                         <CardHeader>
                             <CardTitle>
-                                {currentSession ? "Current Session" : "New Session"}
+                                {currentSession ? "Sesión Actual" : "Nueva Sesión"}
                             </CardTitle>
                             <CardDescription>
-                                {currentSession ? `Session for ${currentSession.userName}` : "Start a new cashbox session for the day."}
+                                {currentSession ? `Sesión para ${currentSession.userName}` : "Iniciar una nueva sesión de caja para el día."}
                             </CardDescription>
                         </CardHeader>
                         {currentSession ? (
                             <>
                                 <CardContent className="space-y-4">
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Opening Balance:</span>
+                                        <span className="text-muted-foreground">Saldo de Apertura:</span>
                                         <span className="font-medium">${currentSession.openingBalance.toFixed(2)}</span>
                                     </div>
                                      <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Total Sales:</span>
+                                        <span className="text-muted-foreground">Ventas Totales:</span>
                                         <span className="font-medium">${currentSession.totalSales.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between font-bold text-lg">
-                                        <span>Expected in Drawer:</span>
+                                        <span>Esperado en Caja:</span>
                                         <span>${(currentSession.openingBalance + currentSession.totalSales).toFixed(2)}</span>
                                     </div>
                                 </CardContent>
                                 <CardFooter>
                                     <Button variant="destructive" className="w-full">
                                         <DoorClosed className="mr-2 h-4 w-4" />
-                                        Close Cashbox
+                                        Cerrar Caja
                                     </Button>
                                 </CardFooter>
                             </>
@@ -70,14 +70,14 @@ export default function CashboxPage() {
                              <>
                                 <CardContent>
                                     <div className="space-y-2">
-                                        <Label htmlFor="opening-balance">Opening Balance</Label>
+                                        <Label htmlFor="opening-balance">Saldo de Apertura</Label>
                                         <Input id="opening-balance" type="number" placeholder="100.00" />
                                     </div>
                                 </CardContent>
                                 <CardFooter>
                                     <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
                                         <DoorOpen className="mr-2 h-4 w-4" />
-                                        Open Cashbox
+                                        Abrir Caja
                                     </Button>
                                 </CardFooter>
                             </>
@@ -87,17 +87,17 @@ export default function CashboxPage() {
                 <div className="lg:col-span-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Session History</CardTitle>
-                            <CardDescription>Review of past cashbox sessions.</CardDescription>
+                            <CardTitle>Historial de Sesiones</CardTitle>
+                            <CardDescription>Revisión de sesiones de caja anteriores.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>User</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Date Closed</TableHead>
-                                        <TableHead className="text-right">Closing Balance</TableHead>
+                                        <TableHead>Usuario</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                        <TableHead>Fecha de Cierre</TableHead>
+                                        <TableHead className="text-right">Saldo de Cierre</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -105,8 +105,8 @@ export default function CashboxPage() {
                                         <TableRow key={session.id}>
                                             <TableCell>{session.userName}</TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className={cn(session.status === 'open' ? 'text-green-700 border-green-300' : 'text-gray-700 border-gray-300')}>
-                                                    {session.status}
+                                                <Badge variant="outline" className={cn(session.status === 'open' ? 'text-green-700 border-green-300' : 'text-gray-700 border-gray-300', "capitalize")}>
+                                                    {session.status === 'open' ? 'Abierta' : 'Cerrada'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>

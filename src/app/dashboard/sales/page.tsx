@@ -32,16 +32,16 @@ export default function SalesPage() {
   return (
     <div>
       <PageHeader
-        title="Record Sale"
-        description="Create new orders and record payments for ticket sales."
+        title="Registrar Venta"
+        description="Crear nuevos pedidos y registrar pagos por ventas de boletos."
       />
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Available Tickets</CardTitle>
+              <CardTitle>Boletos Disponibles</CardTitle>
               <CardDescription>
-                Select tickets to add to the current order.
+                Seleccione boletos para agregar al pedido actual.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -49,8 +49,8 @@ export default function SalesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Price</TableHead>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Precio</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -76,8 +76,8 @@ export default function SalesPage() {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Current Order</CardTitle>
-              <CardDescription>Order ID: order-3</CardDescription>
+              <CardTitle>Pedido Actual</CardTitle>
+              <CardDescription>ID de Pedido: order-3</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
               <div className="flex items-center justify-between">
@@ -107,10 +107,10 @@ export default function SalesPage() {
             <CardFooter className="flex flex-col gap-2">
               <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
                 <CreditCard className="mr-2 h-4 w-4" />
-                Record Payment
+                Registrar Pago
               </Button>
               <Button variant="outline" className="w-full">
-                Cancel Order
+                Cancelar Pedido
               </Button>
             </CardFooter>
           </Card>
@@ -118,16 +118,16 @@ export default function SalesPage() {
       </div>
        <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle>Transacciones Recientes</CardTitle>
           </CardHeader>
           <CardContent>
              <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Seller</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>ID de Pedido</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Vendedor</TableHead>
+                  <TableHead className="text-right">Monto</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -137,9 +137,9 @@ export default function SalesPage() {
                     <TableCell>
                       <Badge
                         variant={order.status === 'paid' ? 'default' : 'secondary'}
-                        className={order.status === 'paid' ? 'bg-green-500/20 text-green-700 hover:bg-green-500/30' : ''}
+                        className={order.status === 'paid' ? 'bg-green-500/20 text-green-700 hover:bg-green-500/30 capitalize' : 'capitalize'}
                       >
-                        {order.status}
+                         {order.status === 'paid' ? 'Pagado' : order.status === 'pending' ? 'Pendiente' : 'Cancelado'}
                       </Badge>
                     </TableCell>
                     <TableCell>{order.sellerName}</TableCell>
