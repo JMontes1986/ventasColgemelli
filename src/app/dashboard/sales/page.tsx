@@ -64,7 +64,7 @@ export default function SalesPage() {
       }
     }
     loadProducts();
-  }, [toast]);
+  }, []);
 
   const availableTickets: Ticket[] = []; // No tickets by default
 
