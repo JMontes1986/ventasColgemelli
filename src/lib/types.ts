@@ -62,7 +62,7 @@ export type AuditLog = {
   id: string;
   timestamp: string;
   userId: string;
-  userName: string;
+  userName:string;
   action: AuditLogAction;
   details: string;
 };
@@ -75,6 +75,7 @@ export type Product = {
     imageUrl: string;
     imageHint: string;
     isSelfService: boolean;
+    isPosAvailable: boolean; // New field for Point of Sale availability
 };
 
 // Represents an item in the shopping cart, stored within a Purchase

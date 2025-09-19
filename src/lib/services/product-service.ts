@@ -10,7 +10,7 @@ export type UpdatableProduct = Partial<NewProduct>;
 export async function getProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
   const productSnapshot = await getDocs(productsCol);
-  const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+  const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPosAvailable: doc.data().isPosAvailable ?? true } as Product));
   return productList;
 }
 
@@ -40,6 +40,7 @@ export async function addProductWithId(product: Product): Promise<void> {
         imageUrl: product.imageUrl,
         imageHint: product.imageHint,
         isSelfService: product.isSelfService ?? false,
+        isPosAvailable: product.isPosAvailable ?? true,
     });
 }
 

@@ -19,7 +19,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store } from "lucide-react";
 import { RoleGate } from "@/components/role-gate";
 import Image from "next/image";
 import { mockProducts } from "@/lib/placeholder-data";
@@ -57,6 +57,7 @@ function ProductForm({
     const [stock, setStock] = useState(initialData?.stock.toString() || '');
     const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
     const [isSelfService, setIsSelfService] = useState(initialData?.isSelfService || false);
+    const [isPosAvailable, setIsPosAvailable] = useState(initialData?.isPosAvailable ?? true);
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
@@ -66,12 +67,14 @@ function ProductForm({
             setStock(initialData.stock.toString());
             setImageUrl(initialData.imageUrl);
             setIsSelfService(initialData.isSelfService);
+            setIsPosAvailable(initialData.isPosAvailable ?? true);
         } else if (isOpen && mode === 'create') {
             setName('');
             setPrice('');
             setStock('');
             setImageUrl('');
             setIsSelfService(false);
+            setIsPosAvailable(true);
         }
     }, [isOpen, mode, initialData]);
 
@@ -86,6 +89,7 @@ function ProductForm({
                 imageUrl: imageUrl || `https://picsum.photos/seed/${name.replace(/\s/g, '')}/400/400`,
                 imageHint: name.toLowerCase().split(' ').slice(0,2).join(' '),
                 isSelfService,
+                isPosAvailable,
             };
 
             try {
@@ -105,6 +109,7 @@ function ProductForm({
                 imageUrl,
                 imageHint: name.toLowerCase().split(' ').slice(0,2).join(' '),
                 isSelfService,
+                isPosAvailable,
             };
             try {
                 await updateProduct(initialData.id, updatedProductData);
@@ -162,9 +167,16 @@ function ProductForm({
                             <Label htmlFor="product-image-url">URL de la Imagen</Label>
                             <Input id="product-image-url" placeholder="https://ejemplo.com/imagen.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <Switch id="is-self-service" checked={isSelfService} onCheckedChange={setIsSelfService} />
-                            <Label htmlFor="is-self-service">Disponible en Autoservicio</Label>
+                        <div className="space-y-2">
+                            <Label>Disponibilidad</Label>
+                            <div className="flex items-center space-x-2">
+                                <Switch id="is-pos-available" checked={isPosAvailable} onCheckedChange={setIsPosAvailable} />
+                                <Label htmlFor="is-pos-available">Punto de Venta (Caja)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Switch id="is-self-service" checked={isSelfService} onCheckedChange={setIsSelfService} />
+                                <Label htmlFor="is-self-service">Autoservicio</Label>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -287,11 +299,22 @@ export default function ProductsPage() {
                 </div>
 
                 <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-2">
                         <h3 className="text-lg font-semibold">{product.name}</h3>
-                        {product.isSelfService && (
-                            <Badge variant="secondary">Autoservicio</Badge>
-                        )}
+                        <div className="flex flex-col items-end gap-1">
+                            {product.isPosAvailable && (
+                                <Badge variant="secondary" className="flex items-center gap-1">
+                                    <Store className="h-3 w-3" />
+                                    <span>Caja</span>
+                                </Badge>
+                            )}
+                            {product.isSelfService && (
+                                <Badge variant="outline" className="flex items-center gap-1 border-blue-300 text-blue-700">
+                                     <ShoppingCart className="h-3 w-3" />
+                                    <span>Autoservicio</span>
+                                </Badge>
+                            )}
+                        </div>
                     </div>
                     <div className="flex justify-between items-center mt-2">
                         <span className="text-xl font-bold">{formatCurrency(product.price)}</span>

@@ -166,7 +166,7 @@ export default function SalesPage() {
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const change = customerPayment - subtotal;
   
-  const productsInStock = products.filter(p => p.stock > 0);
+  const productsForSale = products.filter(p => p.isPosAvailable && p.stock > 0);
 
   return (
     <div>
@@ -210,10 +210,10 @@ export default function SalesPage() {
                             <p className="text-muted-foreground p-3">Cargando productos...</p>
                          ) : (
                             <div className="flex flex-col gap-2">
-                                {productsInStock.length === 0 ? (
-                                    <p className="text-muted-foreground p-3">No hay productos disponibles.</p>
+                                {productsForSale.length === 0 ? (
+                                    <p className="text-muted-foreground p-3">No hay productos disponibles para la venta.</p>
                                 ) : (
-                                    productsInStock.map((product) => (
+                                    productsForSale.map((product) => (
                                         <div key={product.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 bg-secondary rounded-md flex-shrink-0 relative">
