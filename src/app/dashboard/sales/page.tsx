@@ -50,26 +50,21 @@ export default function SalesPage() {
   const { role, users, isMounted } = useMockAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const productsById = useMemo(() => {
-    return new Map(products.map(p => [p.id, p]));
-  }, [products]);
-
-  const loadProducts = useCallback(async () => {
-    setIsLoading(true);
-    try {
-        const fetchedProducts = await getProducts();
-        setProducts(fetchedProducts);
-    } catch (error) {
-        console.error("Error fetching products:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast]);
-
   useEffect(() => {
+    async function loadProducts() {
+      setIsLoading(true);
+      try {
+          const fetchedProducts = await getProducts();
+          setProducts(fetchedProducts);
+      } catch (error) {
+          console.error("Error fetching products:", error);
+          toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
+      } finally {
+          setIsLoading(false);
+      }
+    }
     loadProducts();
-  }, [loadProducts]);
+  }, [toast]);
 
   const availableTickets: Ticket[] = []; // No tickets by default
 
@@ -154,7 +149,18 @@ export default function SalesPage() {
         await addPurchase(newPurchaseData);
         toast({ title: "Venta Exitosa", description: "La compra ha sido registrada." });
         clearCart();
-        await loadProducts(); // Refresh product list to show updated stock
+        
+        // Directly fetch products again after purchase
+        setIsLoading(true);
+        try {
+            const fetchedProducts = await getProducts();
+            setProducts(fetchedProducts);
+        } catch (error) {
+            console.error("Error refetching products:", error);
+        } finally {
+            setIsLoading(false);
+        }
+
     } catch (error) {
         console.error("Error creating purchase:", error);
         toast({ variant: "destructive", title: "Error en la Venta", description: (error as Error).message || "No se pudo registrar la venta." });
