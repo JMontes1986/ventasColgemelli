@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Search, Info, CheckCircle, TicketCheck, AlertTriangle } from "lucide-react";
-import { getPurchasesByCedula, getPurchaseById } from '@/lib/services/purchase-service';
+import { getPurchasesByCedula, getPurchaseById, getPurchasesByCelular } from '@/lib/services/purchase-service';
 import type { Purchase } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -26,7 +26,7 @@ export default function RedeemPage() {
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!searchCedula && !searchCelular && !searchCode) {
+        if (!searchCode && !searchCedula && !searchCelular) {
             toast({
                 variant: 'destructive',
                 title: 'Campo Requerido',
@@ -47,13 +47,9 @@ export default function RedeemPage() {
                     results.push(purchase);
                 }
             } else if (searchCedula) {
-                // Assuming search by celular would also be useful here if cedula is the primary lookup key
-                 const purchases = await getPurchasesByCedula(searchCedula);
-                 if (searchCelular) {
-                     results = purchases.filter(p => p.celular.includes(searchCelular));
-                 } else {
-                     results = purchases;
-                 }
+                results = await getPurchasesByCedula(searchCedula);
+            } else if (searchCelular) {
+                results = await getPurchasesByCelular(searchCelular);
             }
             setSearchResults(results);
         } catch (error) {
@@ -79,7 +75,7 @@ export default function RedeemPage() {
                     <CardHeader>
                         <CardTitle>Buscar Compra</CardTitle>
                         <CardDescription>
-                            Ingrese uno o más campos para encontrar el registro de la compra.
+                            Ingrese uno de los campos para encontrar el registro de la compra.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -172,5 +168,3 @@ export default function RedeemPage() {
         </div>
     );
 }
-
-    
