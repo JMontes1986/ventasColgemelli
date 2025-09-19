@@ -60,14 +60,16 @@ function UserForm({
 }) {
     const { toast } = useToast();
     const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
     const [role, setRole] = useState<UserRole>('readonly');
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
             setName('');
-            setEmail('');
+            setUsername('');
+            setPassword('');
             setRole('readonly');
         }
     }, [isOpen]);
@@ -77,7 +79,8 @@ function UserForm({
         
         const newUserData: NewUser = {
             name,
-            email,
+            username,
+            password,
             role,
             avatarUrl: `https://picsum.photos/seed/${name.replace(/\s/g, '')}/100/100`,
         };
@@ -113,8 +116,12 @@ function UserForm({
                             <Input id="user-name" placeholder="Ej: Juan Pérez" value={name} onChange={e => setName(e.target.value)} required />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="user-email">Correo Electrónico</Label>
-                            <Input id="user-email" type="email" placeholder="juan.perez@ejemplo.com" value={email} onChange={e => setEmail(e.target.value)} required/>
+                            <Label htmlFor="user-username">Nombre de Usuario</Label>
+                            <Input id="user-username" placeholder="ej: juan.perez" value={username} onChange={e => setUsername(e.target.value)} required/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="user-password">Contraseña</Label>
+                            <Input id="user-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="user-role">Rol</Label>
@@ -234,7 +241,7 @@ export default function UsersPage() {
                 <TableHeader>
                 <TableRow>
                     <TableHead>Usuario</TableHead>
-                    <TableHead>Correo Electrónico</TableHead>
+                    <TableHead>Nombre de Usuario</TableHead>
                     <TableHead>Rol</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -251,7 +258,7 @@ export default function UsersPage() {
                         <span className="font-medium">{user.name}</span>
                         </div>
                     </TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.username}</TableCell>
                     <TableCell>
                         <Select
                             defaultValue={user.role}

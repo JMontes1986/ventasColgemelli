@@ -5,13 +5,14 @@ export type UserRole = 'admin' | 'cashier' | 'seller' | 'auditor' | 'readonly';
 export type User = {
   id: string;
   name: string;
-  email: string;
+  username: string;
+  password?: string;
   role: UserRole;
   avatarUrl: string;
 };
 
 export type NewUser = Omit<User, 'id'>;
-export type UpdatableUser = Partial<Omit<User, 'id' | 'email'>>;
+export type UpdatableUser = Partial<Omit<User, 'id' | 'username' | 'password'>>;
 
 
 export type TicketStatus = 'available' | 'sold' | 'redeemed' | 'void';
