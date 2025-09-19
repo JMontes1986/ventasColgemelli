@@ -58,7 +58,7 @@ export default function Dashboard() {
       }
     }
     loadPurchases();
-  }, [toast]);
+  }, []);
 
   const paidPurchases = purchases.filter((p) => p.status === "paid" || p.status === "delivered");
   const totalRevenue = paidPurchases.reduce((sum, p) => sum + p.total, 0);
