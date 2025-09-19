@@ -11,6 +11,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   Table,
@@ -27,7 +28,7 @@ import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
+  DialogDescription as DialogDesc,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -345,9 +346,9 @@ export default function SelfServicePage() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Confirmar Información</DialogTitle>
-                    <DialogDescription>
+                    <DialogDesc>
                        Por favor, ingrese su cédula y número de celular para generar el código de pago.
-                    </DialogDescription>
+                    </DialogDesc>
                 </DialogHeader>
                 <form id="user-info-form" onSubmit={handleConfirmPayment}>
                     <div className="grid gap-4 py-4">
@@ -389,9 +390,9 @@ export default function SelfServicePage() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Código de Pago Generado</DialogTitle>
-                    <DialogDescription>
+                    <DialogDesc>
                         Presente este código en la caja para completar su compra. El código es el ID de su compra.
-                    </DialogDescription>
+                    </DialogDesc>
                 </DialogHeader>
                 <div className="py-4 text-center">
                     <p className="text-sm text-muted-foreground">Su código de pago único es:</p>
@@ -406,3 +407,5 @@ export default function SelfServicePage() {
       </main>
     </div>
   );
+
+    
