@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Ticket, DollarSign, Users, ShoppingCart, UserCog } from "lucide-react";
+import { DollarSign, Users, ShoppingCart, UserCog } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import type { Purchase, Product } from "@/lib/types";
 import { getPurchases } from "@/lib/services/purchase-service";
@@ -72,7 +72,7 @@ export default function Dashboard() {
       }
     }
     loadData();
-  }, [toast]);
+  }, []);
 
   const paidPurchases = purchases.filter((p) => p.status === "paid" || p.status === "delivered");
   const totalRevenue = paidPurchases.reduce((sum, p) => sum + p.total, 0);
