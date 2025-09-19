@@ -31,8 +31,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogClose
 } from "@/components/ui/dialog";
 import Link from 'next/link';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 type CartItem = {
   id: string;
@@ -47,6 +51,8 @@ type Purchase = {
     date: string;
     total: number;
     items: CartItem[];
+    cedula: string;
+    celular: string;
 }
 
 const PURCHASE_HISTORY_KEY = 'purchase_history';
@@ -54,8 +60,11 @@ const PURCHASE_HISTORY_KEY = 'purchase_history';
 export default function SelfServicePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
   const [paymentCode, setPaymentCode] = useState<string | null>(null);
   const [purchaseHistory, setPurchaseHistory] = useState<Purchase[]>([]);
+  const [cedula, setCedula] = useState('');
+  const [celular, setCelular] = useState('');
 
   useEffect(() => {
     try {
@@ -101,14 +110,24 @@ export default function SelfServicePage() {
     setCart([]);
   };
 
-  const handlePayment = () => {
-    if (cart.length === 0) return;
+  const handleInitiatePayment = () => {
+    if (cart.length > 0) {
+        setIsUserInfoModalOpen(true);
+    }
+  }
+
+  const handleConfirmPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cart.length === 0 || !cedula || !celular) return;
+
     const code = `CG-PAY-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     const newPurchase: Purchase = {
         code,
         date: new Date().toLocaleString('es-CO'),
         total: subtotal,
-        items: cart
+        items: cart,
+        cedula,
+        celular,
     };
 
     const updatedHistory = [newPurchase, ...purchaseHistory];
@@ -120,12 +139,15 @@ export default function SelfServicePage() {
     }
 
     setPaymentCode(code);
+    setIsUserInfoModalOpen(false);
     setIsPaymentModalOpen(true);
   };
 
   const closeModal = () => {
       setIsPaymentModalOpen(false);
       setPaymentCode(null);
+      setCedula('');
+      setCelular('');
       clearCart();
   }
 
@@ -232,7 +254,7 @@ export default function SelfServicePage() {
                 <CardFooter className="flex flex-col gap-2">
                     <Button 
                         className="w-full text-lg h-12 bg-accent hover:bg-accent/90 text-accent-foreground font-bold" 
-                        onClick={handlePayment}
+                        onClick={handleInitiatePayment}
                         disabled={cart.length === 0}
                     >
                         Pagar con DaviPlata
@@ -262,6 +284,8 @@ export default function SelfServicePage() {
                                 <TableRow>
                                     <TableHead>Código de Pago</TableHead>
                                     <TableHead>Fecha</TableHead>
+                                    <TableHead>Cédula</TableHead>
+                                    <TableHead>Celular</TableHead>
                                     <TableHead className="text-right">Total</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -270,6 +294,8 @@ export default function SelfServicePage() {
                                     <TableRow key={purchase.code}>
                                         <TableCell className="font-mono">{purchase.code}</TableCell>
                                         <TableCell>{purchase.date}</TableCell>
+                                        <TableCell>{purchase.cedula}</TableCell>
+                                        <TableCell>{purchase.celular}</TableCell>
                                         <TableCell className="text-right font-medium">{formatCurrency(purchase.total)}</TableCell>
                                     </TableRow>
                                 ))}
@@ -279,6 +305,50 @@ export default function SelfServicePage() {
                 </CardContent>
             </Card>
         </div>
+
+        <Dialog open={isUserInfoModalOpen} onOpenChange={setIsUserInfoModalOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Confirmar Información</DialogTitle>
+                    <DialogDescription>
+                       Por favor, ingrese su cédula y número de celular para generar el código de pago.
+                    </DialogDescription>
+                </DialogHeader>
+                <form id="user-info-form" onSubmit={handleConfirmPayment}>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="cedula">Cédula</Label>
+                            <Input 
+                                id="cedula" 
+                                value={cedula} 
+                                onChange={(e) => setCedula(e.target.value)} 
+                                required 
+                                placeholder="Número de documento"
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="celular">Celular Registrado en DaviPlata</Label>
+                            <Input 
+                                id="celular" 
+                                type="tel"
+                                value={celular} 
+                                onChange={(e) => setCelular(e.target.value)} 
+                                required 
+                                placeholder="3001234567"
+                            />
+                        </div>
+                    </div>
+                </form>
+                 <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">
+                            Cancelar
+                        </Button>
+                    </DialogClose>
+                    <Button type="submit" form="user-info-form">Confirmar y Pagar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <Dialog open={isPaymentModalOpen} onOpenChange={closeModal}>
             <DialogContent>
