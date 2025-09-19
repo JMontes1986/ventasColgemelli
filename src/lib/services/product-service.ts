@@ -1,9 +1,10 @@
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, doc, setDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 import type { Product } from "@/lib/types";
 
 // Type for creating a new product, ID is optional as Firestore will generate it
 export type NewProduct = Omit<Product, 'id'>;
+export type UpdatableProduct = Partial<NewProduct>;
 
 // Function to get all products from Firestore
 export async function getProducts(): Promise<Product[]> {
@@ -30,4 +31,10 @@ export async function addProductWithId(product: Product): Promise<void> {
         imageUrl: product.imageUrl,
         imageHint: product.imageHint,
     });
+}
+
+// Function to update an existing product in Firestore
+export async function updateProduct(productId: string, product: UpdatableProduct): Promise<void> {
+    const productRef = doc(db, 'products', productId);
+    await updateDoc(productRef, product);
 }

@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -37,58 +35,109 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
-import { getProducts, addProduct, addProductWithId, type NewProduct } from "@/lib/services/product-service";
+import { getProducts, addProduct, addProductWithId, type NewProduct, updateProduct } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
 
-function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Product) => void }) {
+function ProductForm({ 
+    mode, 
+    initialData,
+    onProductAdded,
+    onProductUpdated,
+}: { 
+    mode: 'create' | 'edit';
+    initialData?: Product;
+    onProductAdded: (product: Product) => void;
+    onProductUpdated: (product: Product) => void;
+}) {
     const { toast } = useToast();
-    const [name, setName] = useState('');
-    const [price, setPrice] = useState('');
-    const [stock, setStock] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
+    const [name, setName] = useState(initialData?.name || '');
+    const [price, setPrice] = useState(initialData?.price.toString() || '');
+    const [stock, setStock] = useState(initialData?.stock.toString() || '');
+    const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
+    const [isOpen, setIsOpen] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const newProductData: NewProduct = {
-            name,
-            price: parseFloat(price),
-            stock: parseInt(stock, 10),
-            imageUrl: imageUrl || 'https://picsum.photos/seed/newproduct/400/400',
-            imageHint: 'new product'
-        };
-
-        try {
-            const addedProduct = await addProduct(newProductData);
-            onProductAdded(addedProduct);
-            toast({ title: "Éxito", description: "Producto añadido correctamente." });
-             // Reset form fields
+    useEffect(() => {
+        if (isOpen && mode === 'edit' && initialData) {
+            setName(initialData.name);
+            setPrice(initialData.price.toString());
+            setStock(initialData.stock.toString());
+            setImageUrl(initialData.imageUrl);
+        } else if (isOpen && mode === 'create') {
             setName('');
             setPrice('');
             setStock('');
             setImageUrl('');
-        } catch (error) {
-            console.error("Error adding product:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudo añadir el producto." });
+        }
+    }, [isOpen, mode, initialData]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (mode === 'create') {
+            const newProductData: NewProduct = {
+                name,
+                price: parseFloat(price),
+                stock: parseInt(stock, 10),
+                imageUrl: imageUrl || `https://picsum.photos/seed/${name.replace(/\s/g, '')}/400/400`,
+                imageHint: name.toLowerCase().split(' ').slice(0,2).join(' ')
+            };
+
+            try {
+                const addedProduct = await addProduct(newProductData);
+                onProductAdded(addedProduct);
+                toast({ title: "Éxito", description: "Producto añadido correctamente." });
+                setIsOpen(false);
+            } catch (error) {
+                console.error("Error adding product:", error);
+                toast({ variant: "destructive", title: "Error", description: "No se pudo añadir el producto." });
+            }
+        } else if (mode === 'edit' && initialData) {
+             const updatedProductData = {
+                name,
+                price: parseFloat(price),
+                stock: parseInt(stock, 10),
+                imageUrl,
+                imageHint: name.toLowerCase().split(' ').slice(0,2).join(' ')
+            };
+            try {
+                await updateProduct(initialData.id, updatedProductData);
+                onProductUpdated({ ...initialData, ...updatedProductData });
+                toast({ title: "Éxito", description: "Producto actualizado correctamente." });
+                setIsOpen(false);
+            } catch (error) {
+                console.error("Error updating product:", error);
+                toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el producto." });
+            }
         }
     };
 
+    const dialogTitle = mode === 'create' ? "Añadir Nuevo Producto" : "Editar Producto";
+    const dialogDescription = mode === 'create' ? "Complete los detalles del nuevo producto." : "Actualice los detalles del producto.";
+    const buttonText = mode === 'create' ? "Guardar Producto" : "Guardar Cambios";
+
+    const trigger = mode === 'create' ? (
+        <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Añadir Producto
+        </Button>
+    ) : (
+        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Editar
+        </DropdownMenuItem>
+    );
 
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                 <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Añadir Producto
-                </Button>
+                 {trigger}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Añadir Nuevo Producto</DialogTitle>
-                    <DialogDescription>
-                        Complete los detalles del nuevo producto.
-                    </DialogDescription>
+                    <DialogTitle>{dialogTitle}</DialogTitle>
+                    <DialogDescription>{dialogDescription}</DialogDescription>
                 </DialogHeader>
-                <form id="add-product-form" onSubmit={handleSubmit}>
+                <form id={`product-form-${initialData?.id || 'create'}`} onSubmit={handleSubmit}>
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="product-name">Nombre del Producto</Label>
@@ -114,7 +163,7 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
                             Cancelar
                         </Button>
                     </DialogClose>
-                    <Button type="submit" form="add-product-form">Guardar Producto</Button>
+                    <Button type="submit" form={`product-form-${initialData?.id || 'create'}`}>{buttonText}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -150,6 +199,11 @@ export default function ProductsPage() {
     setProducts(prevProducts => [...prevProducts, newProduct]);
   };
 
+  const handleProductUpdated = (updatedProduct: Product) => {
+    setProducts(prevProducts => prevProducts.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+  };
+
+
   const handleSeedDatabase = async () => {
     try {
         await Promise.all(mockProducts.map(p => addProductWithId(p)));
@@ -176,7 +230,7 @@ export default function ProductsPage() {
                 Cargar Productos de Ejemplo
             </Button>
            )}
-           <CreateProductForm onProductAdded={handleProductAdded} />
+           <ProductForm mode="create" onProductAdded={handleProductAdded} onProductUpdated={handleProductUpdated} />
         </RoleGate>
       </PageHeader>
       
@@ -196,10 +250,12 @@ export default function ProductsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuItem>
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Editar
-                                </DropdownMenuItem>
+                                <ProductForm 
+                                    mode="edit" 
+                                    initialData={product}
+                                    onProductAdded={handleProductAdded}
+                                    onProductUpdated={handleProductUpdated}
+                                />
                                 <DropdownMenuItem className="text-destructive">
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Eliminar
