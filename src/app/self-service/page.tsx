@@ -157,7 +157,7 @@ export default function SelfServicePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {mockProducts.map((product) => (
                     <Card key={product.id} className="overflow-hidden group">
-                        <div className="aspect-square relative">
+                        <div className="aspect-square relative cursor-pointer" onClick={() => addToCart(product)}>
                         <Image
                             src={product.imageUrl}
                             alt={product.name}
