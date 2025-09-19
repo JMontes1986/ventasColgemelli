@@ -35,7 +35,8 @@ export default function ReturnsPage() {
             try {
                 const fetchedProducts = await getProducts();
                 setProducts(fetchedProducts);
-            } catch (error) {
+            } catch (error)
+                 {
                 console.error("Error fetching products:", error);
                 toast({
                     variant: 'destructive',
@@ -47,7 +48,7 @@ export default function ReturnsPage() {
             }
         }
         loadProducts();
-    }, [toast]);
+    }, []);
 
     const handleReturn = async (e: React.FormEvent) => {
         e.preventDefault();
