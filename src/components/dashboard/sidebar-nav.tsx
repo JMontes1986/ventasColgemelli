@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -21,6 +22,7 @@ import {
   Users,
   ClipboardList,
   LogOut,
+  Package,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -35,6 +37,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", allowedRoles: ['admin', 'cashier', 'seller', 'auditor', 'readonly'] },
   { href: "/dashboard/sales", icon: ShoppingCart, label: "Sales", allowedRoles: ['admin', 'cashier', 'seller'] },
   { href: "/dashboard/tickets", icon: Ticket, label: "Tickets", allowedRoles: ['admin', 'seller'] },
+  { href: "/dashboard/products", icon: Package, label: "Products", allowedRoles: ['admin', 'cashier'] },
   { href: "/dashboard/redeem", icon: QrCode, label: "Redeem", allowedRoles: ['admin', 'auditor'] },
   { href: "/dashboard/cashbox", icon: Archive, label: "Cashbox", allowedRoles: ['admin', 'cashier'] },
 ];
