@@ -44,7 +44,7 @@ const roleTranslations: Record<UserRole, string> = {
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Panel", allowedRoles: ['admin', 'cashier', 'seller', 'auditor', 'readonly'] },
   { href: "/dashboard/sales", icon: ShoppingCart, label: "Ventas", allowedRoles: ['admin', 'cashier', 'seller'] },
-  { href: "/dashboard/tickets", icon: UserCog, label: "Autogestión", allowedRoles: ['admin', 'seller', 'cashier', 'auditor', 'readonly'] },
+  { href: "/self-service", icon: UserCog, label: "Autogestión", allowedRoles: ['admin', 'seller', 'cashier', 'auditor', 'readonly'] },
   { href: "/dashboard/products", icon: Package, label: "Productos", allowedRoles: ['admin', 'cashier'] },
   { href: "/dashboard/redeem", icon: QrCode, label: "Canjear", allowedRoles: ['admin', 'auditor'] },
   { href: "/dashboard/cashbox", icon: Archive, label: "Caja", allowedRoles: ['admin', 'cashier'] },
