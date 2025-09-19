@@ -76,12 +76,14 @@ export default function Dashboard() {
 
   const paidPurchases = purchases.filter((p) => p.status === "paid" || p.status === "delivered");
   const totalRevenue = paidPurchases.reduce((sum, p) => sum + p.total, 0);
+  
+  const selfServicePurchases = paidPurchases.filter(p => !p.sellerId);
 
-  const selfServiceRevenue = paidPurchases
-    .filter(p => !p.sellerId) // Self-service purchases don't have a sellerId
-    .reduce((sum, p) => sum + p.total, 0);
+  const selfServiceRevenue = selfServicePurchases.reduce((sum, p) => sum + p.total, 0);
 
-  const activeUsers = new Set(purchases.map(p => p.sellerId).filter(Boolean)).size;
+  const selfServiceUsers = new Set(selfServicePurchases.map(p => p.cedula)).size;
+
+  const activeSellers = new Set(paidPurchases.map(p => p.sellerId).filter(Boolean)).size;
 
   const productSales = paidPurchases
     .flatMap(p => p.items)
@@ -104,7 +106,7 @@ export default function Dashboard() {
         title="Panel de Control"
         description="Un resumen de las ventas y la actividad de los boletos."
       />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
@@ -120,12 +122,24 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ingresos Autogestión</CardTitle>
-            <UserCog className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(selfServiceRevenue)}</div>
             <p className="text-xs text-muted-foreground">
               Ventas del portal de autogestión
+            </p>
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Usuarios Autogestión</CardTitle>
+            <UserCog className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">+{selfServiceUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              Clientes únicos de autogestión
             </p>
           </CardContent>
         </Card>
@@ -135,9 +149,9 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{activeUsers}</div>
+            <div className="text-2xl font-bold">+{activeSellers}</div>
             <p className="text-xs text-muted-foreground">
-              Vendedores con transacciones registradas
+              Vendedores con transacciones
             </p>
           </CardContent>
         </Card>
