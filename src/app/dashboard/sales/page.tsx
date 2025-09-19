@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Ticket as TicketIcon } from "lucide-react";
+import { formatCurrency } from '@/lib/utils';
 
 type CartItem = {
   id: string;
@@ -102,7 +103,7 @@ export default function SalesPage() {
                                         <TicketIcon className="h-6 w-6 text-primary" />
                                         <div>
                                             <p className="font-semibold">{ticket.uniqueCode}</p>
-                                            <p className="text-sm text-muted-foreground">${ticket.price.toFixed(2)}</p>
+                                            <p className="text-sm text-muted-foreground">{formatCurrency(ticket.price)}</p>
                                         </div>
                                     </div>
                                     <Button onClick={() => addToCart(ticket, 'ticket')}>
@@ -120,7 +121,7 @@ export default function SalesPage() {
                                         <div className="h-10 w-10 bg-secondary rounded-md flex-shrink-0"></div>
                                         <div>
                                             <p className="font-semibold">{product.name}</p>
-                                            <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
+                                            <p className="text-sm text-muted-foreground">{formatCurrency(product.price)}</p>
                                         </div>
                                     </div>
                                     <Button onClick={() => addToCart(product, 'product')}>
@@ -161,7 +162,7 @@ export default function SalesPage() {
                                                 </Button>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-right text-green-400 font-semibold">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                                        <TableCell className="text-right text-green-400 font-semibold">{formatCurrency(item.price * item.quantity)}</TableCell>
                                         <TableCell className="text-right">
                                             <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-500/20 hover:text-red-400" onClick={() => removeFromCart(item.id)}>
                                                 <Trash2 className="h-4 w-4" />
@@ -176,7 +177,7 @@ export default function SalesPage() {
                 <div className="space-y-4 text-lg">
                     <div className="flex justify-between font-bold">
                         <span>SUBTOTAL</span>
-                        <span>${subtotal.toFixed(2)}</span>
+                        <span>{formatCurrency(subtotal)}</span>
                     </div>
                      <div className="flex justify-between items-center">
                         <label htmlFor="customer-payment" className="font-semibold">CLIENTE</label>
@@ -184,14 +185,14 @@ export default function SalesPage() {
                             id="customer-payment"
                             type="number"
                             className="w-32 bg-blue-900 border-blue-700 text-right font-bold text-xl"
-                            placeholder="0.00"
+                            placeholder="0"
                             value={customerPayment || ''}
                             onChange={(e) => setCustomerPayment(parseFloat(e.target.value) || 0)}
                         />
                     </div>
                     <div className="flex justify-between font-bold text-red-500">
                         <span>DEVOLUCIÓN</span>
-                        <span>${change > 0 && customerPayment > subtotal ? change.toFixed(2) : (0).toFixed(2)}</span>
+                        <span>{formatCurrency(change > 0 && customerPayment > subtotal ? change : 0)}</span>
                     </div>
                 </div>
             </CardContent>

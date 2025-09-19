@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { mockOrders, mockTickets } from "@/lib/placeholder-data";
 import { Ticket, DollarSign, Users, Activity } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function Dashboard() {
   const totalRevenue = mockOrders
@@ -40,7 +42,7 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
               Basado en todos los pedidos pagados
             </p>
@@ -128,7 +130,7 @@ export default function Dashboard() {
                     </TableCell>
                     <TableCell>{order.sellerName}</TableCell>
                     <TableCell className="text-right">
-                      ${order.totalAmount.toFixed(2)}
+                      {formatCurrency(order.totalAmount)}
                     </TableCell>
                   </TableRow>
                 ))}

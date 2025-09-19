@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { DoorOpen, DoorClosed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { mockCashboxSessions } from "@/lib/placeholder-data";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 const currentSession = mockCashboxSessions.find(s => s.status === 'open');
 
@@ -48,15 +49,15 @@ export default function CashboxPage() {
                                 <CardContent className="space-y-4">
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Saldo de Apertura:</span>
-                                        <span className="font-medium">${currentSession.openingBalance.toFixed(2)}</span>
+                                        <span className="font-medium">{formatCurrency(currentSession.openingBalance)}</span>
                                     </div>
                                      <div className="flex justify-between">
                                         <span className="text-muted-foreground">Ventas Totales:</span>
-                                        <span className="font-medium">${currentSession.totalSales.toFixed(2)}</span>
+                                        <span className="font-medium">{formatCurrency(currentSession.totalSales)}</span>
                                     </div>
                                     <div className="flex justify-between font-bold text-lg">
                                         <span>Esperado en Caja:</span>
-                                        <span>${(currentSession.openingBalance + currentSession.totalSales).toFixed(2)}</span>
+                                        <span>{formatCurrency(currentSession.openingBalance + currentSession.totalSales)}</span>
                                     </div>
                                 </CardContent>
                                 <CardFooter>
@@ -71,7 +72,7 @@ export default function CashboxPage() {
                                 <CardContent>
                                     <div className="space-y-2">
                                         <Label htmlFor="opening-balance">Saldo de Apertura</Label>
-                                        <Input id="opening-balance" type="number" placeholder="100.00" />
+                                        <Input id="opening-balance" type="number" placeholder="100000" />
                                     </div>
                                 </CardContent>
                                 <CardFooter>
@@ -113,7 +114,7 @@ export default function CashboxPage() {
                                                 {session.closedAt ? new Date(session.closedAt).toLocaleString() : 'N/A'}
                                             </TableCell>
                                             <TableCell className="text-right font-medium">
-                                                {session.closingBalance ? `$${session.closingBalance.toFixed(2)}` : 'N/A'}
+                                                {session.closingBalance ? formatCurrency(session.closingBalance) : 'N/A'}
                                             </TableCell>
                                         </TableRow>
                                     ))}

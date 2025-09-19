@@ -36,6 +36,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { formatCurrency } from "@/lib/utils";
 
 function CreateProductForm() {
     return (
@@ -144,7 +145,7 @@ export default function ProductsPage() {
               <h3 className="text-lg font-semibold">{product.name}</h3>
               <p className="text-sm text-muted-foreground">{product.category}</p>
               <div className="flex justify-between items-center mt-2">
-                <span className="text-xl font-bold">${product.price.toFixed(2)}</span>
+                <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
                 <span className="text-sm font-medium text-muted-foreground">
                   Stock: {product.stock}
                 </span>

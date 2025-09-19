@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { mockTickets } from "@/lib/placeholder-data";
 import { PlusCircle } from "lucide-react";
 import { RoleGate } from "@/components/role-gate";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export default function TicketsPage() {
   const getStatusVariant = (status: string) => {
@@ -95,7 +96,7 @@ export default function TicketsPage() {
                     {new Date(ticket.issuedAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    ${ticket.price.toFixed(2)}
+                    {formatCurrency(ticket.price)}
                   </TableCell>
                 </TableRow>
               ))}
