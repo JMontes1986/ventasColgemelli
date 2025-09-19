@@ -40,12 +40,12 @@ export const mockAuditLogs: AuditLog[] = [
 ];
 
 export const mockProducts: Product[] = [
-    { id: 'prod-1', name: 'Carne Asada', price: 12.50, stock: 50, category: 'Platos Fuertes', imageUrl: findImage('food-carne-asada'), imageHint: 'grilled meat' },
-    { id: 'prod-2', name: 'Lechona', price: 15.00, stock: 30, category: 'Platos Fuertes', imageUrl: findImage('food-lechona'), imageHint: 'roast pork' },
-    { id: 'prod-3', name: 'Frijoles con Garra', price: 10.00, stock: 60, category: 'Platos Fuertes', imageUrl: findImage('food-frijoles'), imageHint: 'bean stew' },
-    { id: 'prod-4', name: 'Sancocho de Gallina', price: 11.00, stock: 40, category: 'Sopas', imageUrl: findImage('food-sancocho'), imageHint: 'beef soup' },
-    { id: 'prod-5', name: 'Tamal', price: 8.00, stock: 80, category: 'Desayunos', imageUrl: findImage('food-tamal'), imageHint: 'tamale' },
-    { id: 'prod-6', name: 'Chorizo Santarrosano', price: 5.50, stock: 100, category: 'Aperitivos', imageUrl: findImage('food-chorizo'), imageHint: 'sausage' },
-    { id: 'prod-7', name: 'Gaseosa', price: 2.50, stock: 120, category: 'Bebidas', imageUrl: findImage('food-gaseosa'), imageHint: 'soda can' },
-    { id: 'prod-8', name: 'Botella de Agua', price: 1.00, stock: 150, category: 'Bebidas', imageUrl: findImage('food-agua'), imageHint: 'water bottle' },
+    { id: 'prod-1', name: 'Carne Asada', price: 12.50, stock: 50, imageUrl: findImage('food-carne-asada'), imageHint: 'grilled meat' },
+    { id: 'prod-2', name: 'Lechona', price: 15.00, stock: 30, imageUrl: findImage('food-lechona'), imageHint: 'roast pork' },
+    { id: 'prod-3', name: 'Frijoles con Garra', price: 10.00, stock: 60, imageUrl: findImage('food-frijoles'), imageHint: 'bean stew' },
+    { id: 'prod-4', name: 'Sancocho de Gallina', price: 11.00, stock: 40, imageUrl: findImage('food-sancocho'), imageHint: 'beef soup' },
+    { id: 'prod-5', name: 'Tamal', price: 8.00, stock: 80, imageUrl: findImage('food-tamal'), imageHint: 'tamale' },
+    { id: 'prod-6', name: 'Chorizo Santarrosano', price: 5.50, stock: 100, imageUrl: findImage('food-chorizo'), imageHint: 'sausage' },
+    { id: 'prod-7', name: 'Gaseosa', price: 2.50, stock: 120, imageUrl: findImage('food-gaseosa'), imageHint: 'soda can' },
+    { id: 'prod-8', name: 'Botella de Agua', price: 1.00, stock: 150, imageUrl: findImage('food-agua'), imageHint: 'water bottle' },
 ];

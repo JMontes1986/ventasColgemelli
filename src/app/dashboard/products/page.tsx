@@ -21,7 +21,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, MoreHorizontal, Upload, Trash2, Pencil, Database } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil } from "lucide-react";
 import { RoleGate } from "@/components/role-gate";
 import Image from "next/image";
 import { mockProducts } from "@/lib/placeholder-data";
@@ -45,7 +45,6 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
-    const [category, setCategory] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,7 +52,6 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
             name,
             price: parseFloat(price),
             stock: parseInt(stock, 10),
-            category,
             // TODO: Handle image uploads properly
             imageUrl: 'https://picsum.photos/seed/newproduct/400/400',
             imageHint: 'new product'
@@ -67,7 +65,6 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
             setName('');
             setPrice('');
             setStock('');
-            setCategory('');
         } catch (error) {
             console.error("Error adding product:", error);
             toast({ variant: "destructive", title: "Error", description: "No se pudo añadir el producto." });
@@ -103,10 +100,6 @@ function CreateProductForm({ onProductAdded }: { onProductAdded: (product: Produ
                         <div className="space-y-2">
                             <Label htmlFor="product-stock">Stock Inicial</Label>
                             <Input id="product-stock" type="number" placeholder="100" value={stock} onChange={e => setStock(e.target.value)} required/>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="product-category">Categoría</Label>
-                            <Input id="product-category" placeholder="Ej: Comida Principal" value={category} onChange={e => setCategory(e.target.value)} required/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="product-image">Imagen del Producto</Label>
@@ -229,7 +222,6 @@ export default function ProductsPage() {
 
                 <CardContent className="p-4">
                 <h3 className="text-lg font-semibold">{product.name}</h3>
-                <p className="text-sm text-muted-foreground">{product.category}</p>
                 <div className="flex justify-between items-center mt-2">
                     <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
                     <span className="text-sm font-medium text-muted-foreground">

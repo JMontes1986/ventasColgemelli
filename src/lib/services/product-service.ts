@@ -27,7 +27,6 @@ export async function addProductWithId(product: Product): Promise<void> {
         name: product.name,
         price: product.price,
         stock: product.stock,
-        category: product.category,
         imageUrl: product.imageUrl,
         imageHint: product.imageHint,
     });
