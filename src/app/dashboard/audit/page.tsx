@@ -15,7 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { mockAuditLogs } from "@/lib/placeholder-data";
 import type { AuditLogAction } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +37,8 @@ const getActionVariant = (action: AuditLogAction) => {
 }
 
 export default function AuditPage() {
+  const auditLogs: any[] = []; // Empty array
+
   return (
     <div>
       <PageHeader
@@ -62,20 +63,28 @@ export default function AuditPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockAuditLogs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell>
-                    {new Date(log.timestamp).toLocaleString()}
+              {auditLogs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    No hay registros de auditoría.
                   </TableCell>
-                  <TableCell>{log.userName}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={cn("font-mono", getActionVariant(log.action))}>
-                        {log.action}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{log.details}</TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                auditLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell>
+                      {new Date(log.timestamp).toLocaleString()}
+                    </TableCell>
+                    <TableCell>{log.userName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn("font-mono", getActionVariant(log.action))}>
+                          {log.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{log.details}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

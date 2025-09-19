@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Product, Ticket } from '@/lib/types';
-import { mockProducts, mockTickets } from '@/lib/placeholder-data';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +25,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Ticket as TicketIcon } from "lucide-react";
 import { formatCurrency } from '@/lib/utils';
+import { getProducts } from '@/lib/services/product-service';
+import { useToast } from '@/hooks/use-toast';
 
 type CartItem = {
   id: string;
@@ -38,8 +39,26 @@ type CartItem = {
 export default function SalesPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerPayment, setCustomerPayment] = useState<number>(0);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  const availableTickets = mockTickets.filter(t => t.status === 'available');
+  useEffect(() => {
+    async function loadProducts() {
+        try {
+            const fetchedProducts = await getProducts();
+            setProducts(fetchedProducts);
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    loadProducts();
+  }, [toast]);
+
+  const availableTickets: Ticket[] = []; // No tickets by default
 
   const addToCart = (item: Product | Ticket, type: 'product' | 'ticket') => {
     setCart((prevCart) => {
@@ -97,39 +116,51 @@ export default function SalesPage() {
                     <ScrollArea className="h-[60vh]">
                          <h3 className="text-lg font-semibold mb-2">Boletos</h3>
                          <div className="flex flex-col gap-2 mb-4">
-                            {availableTickets.map((ticket) => (
-                                <div key={ticket.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <TicketIcon className="h-6 w-6 text-primary" />
-                                        <div>
-                                            <p className="font-semibold">{ticket.uniqueCode}</p>
-                                            <p className="text-sm text-muted-foreground">{formatCurrency(ticket.price)}</p>
+                            {availableTickets.length === 0 ? (
+                                <p className="text-muted-foreground p-3">No hay boletos disponibles.</p>
+                            ) : (
+                                availableTickets.map((ticket) => (
+                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <TicketIcon className="h-6 w-6 text-primary" />
+                                            <div>
+                                                <p className="font-semibold">{ticket.uniqueCode}</p>
+                                                <p className="text-sm text-muted-foreground">{formatCurrency(ticket.price)}</p>
+                                            </div>
                                         </div>
+                                        <Button onClick={() => addToCart(ticket, 'ticket')}>
+                                            Agregar al carrito
+                                        </Button>
                                     </div>
-                                    <Button onClick={() => addToCart(ticket, 'ticket')}>
-                                        Agregar al carrito
-                                    </Button>
-                                </div>
-                            ))}
+                                ))
+                            )}
                          </div>
                          <h3 className="text-lg font-semibold mb-2">Productos</h3>
-                         <div className="flex flex-col gap-2">
-                            {mockProducts.map((product) => (
-                                <div key={product.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                     <div className="flex items-center gap-3">
-                                        {/* Placeholder for product image */}
-                                        <div className="h-10 w-10 bg-secondary rounded-md flex-shrink-0"></div>
-                                        <div>
-                                            <p className="font-semibold">{product.name}</p>
-                                            <p className="text-sm text-muted-foreground">{formatCurrency(product.price)}</p>
+                         {isLoading ? (
+                            <p className="text-muted-foreground p-3">Cargando productos...</p>
+                         ) : (
+                            <div className="flex flex-col gap-2">
+                                {products.length === 0 ? (
+                                    <p className="text-muted-foreground p-3">No hay productos disponibles.</p>
+                                ) : (
+                                    products.map((product) => (
+                                        <div key={product.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                {/* Placeholder for product image */}
+                                                <div className="h-10 w-10 bg-secondary rounded-md flex-shrink-0"></div>
+                                                <div>
+                                                    <p className="font-semibold">{product.name}</p>
+                                                    <p className="text-sm text-muted-foreground">{formatCurrency(product.price)}</p>
+                                                </div>
+                                            </div>
+                                            <Button onClick={() => addToCart(product, 'product')}>
+                                                Agregar al carrito
+                                            </Button>
                                         </div>
-                                    </div>
-                                    <Button onClick={() => addToCart(product, 'product')}>
-                                        Agregar al carrito
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
+                                    ))
+                                )}
+                            </div>
+                         )}
                     </ScrollArea>
                 </CardContent>
             </Card>

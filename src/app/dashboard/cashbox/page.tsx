@@ -21,10 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DoorOpen, DoorClosed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { mockCashboxSessions } from "@/lib/placeholder-data";
 import { cn, formatCurrency } from "@/lib/utils";
+import type { CashboxSession } from "@/lib/types";
 
-const currentSession = mockCashboxSessions.find(s => s.status === 'open');
+const currentSession: CashboxSession | undefined = undefined; // No current session by default
+const cashboxSessions: CashboxSession[] = []; // No sessions by default
 
 export default function CashboxPage() {
     return (
@@ -102,22 +103,30 @@ export default function CashboxPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {mockCashboxSessions.map(session => (
-                                        <TableRow key={session.id}>
-                                            <TableCell>{session.userName}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className={cn(session.status === 'open' ? 'text-green-700 border-green-300' : 'text-gray-700 border-gray-300', "capitalize")}>
-                                                    {session.status === 'open' ? 'Abierta' : 'Cerrada'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {session.closedAt ? new Date(session.closedAt).toLocaleString() : 'N/A'}
-                                            </TableCell>
-                                            <TableCell className="text-right font-medium">
-                                                {session.closingBalance ? formatCurrency(session.closingBalance) : 'N/A'}
+                                    {cashboxSessions.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="h-24 text-center">
+                                                No hay sesiones de caja.
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    ) : (
+                                        cashboxSessions.map(session => (
+                                            <TableRow key={session.id}>
+                                                <TableCell>{session.userName}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className={cn(session.status === 'open' ? 'text-green-700 border-green-300' : 'text-gray-700 border-gray-300', "capitalize")}>
+                                                        {session.status === 'open' ? 'Abierta' : 'Cerrada'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {session.closedAt ? new Date(session.closedAt).toLocaleString() : 'N/A'}
+                                                </TableCell>
+                                                <TableCell className="text-right font-medium">
+                                                    {session.closingBalance ? formatCurrency(session.closingBalance) : 'N/A'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>

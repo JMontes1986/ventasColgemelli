@@ -16,18 +16,21 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { mockOrders, mockTickets } from "@/lib/placeholder-data";
 import { Ticket, DollarSign, Users, Activity } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import type { Order, Ticket as TicketType } from "@/lib/types";
 
 export default function Dashboard() {
-  const totalRevenue = mockOrders
+  const orders: Order[] = [];
+  const tickets: TicketType[] = [];
+
+  const totalRevenue = orders
     .filter((o) => o.status === "paid")
     .reduce((sum, o) => sum + o.totalAmount, 0);
-  const ticketsSold = mockTickets.filter(
+  const ticketsSold = tickets.filter(
     (t) => t.status === "sold" || t.status === "redeemed"
   ).length;
-  const activeUsers = mockOrders.reduce((acc, order) => acc.add(order.sellerId), new Set()).size;
+  const activeUsers = orders.reduce((acc, order) => acc.add(order.sellerId), new Set()).size;
 
   return (
     <div>
@@ -80,7 +83,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">
               {(
-                (mockTickets.filter((t) => t.status === "redeemed").length /
+                (tickets.filter((t) => t.status === "redeemed").length /
                   (ticketsSold || 1)) *
                 100
               ).toFixed(1)}
@@ -111,29 +114,37 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockOrders.slice(0, 5).map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          order.status === "paid"
-                            ? "default"
-                            : order.status === "pending"
-                            ? "secondary"
-                            : "destructive"
-                        }
-                        className={order.status === 'paid' ? 'bg-green-500/20 text-green-700 hover:bg-green-500/30 capitalize' : 'capitalize'}
-                      >
-                        {order.status === 'paid' ? 'Pagado' : order.status === 'pending' ? 'Pendiente' : 'Cancelado'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{order.sellerName}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(order.totalAmount)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {orders.length === 0 ? (
+                    <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                            No hay ventas recientes.
+                        </TableCell>
+                    </TableRow>
+                ) : (
+                    orders.slice(0, 5).map((order) => (
+                    <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell>
+                        <Badge
+                            variant={
+                            order.status === "paid"
+                                ? "default"
+                                : order.status === "pending"
+                                ? "secondary"
+                                : "destructive"
+                            }
+                            className={order.status === 'paid' ? 'bg-green-500/20 text-green-700 hover:bg-green-500/30 capitalize' : 'capitalize'}
+                        >
+                            {order.status === 'paid' ? 'Pagado' : order.status === 'pending' ? 'Pendiente' : 'Cancelado'}
+                        </Badge>
+                        </TableCell>
+                        <TableCell>{order.sellerName}</TableCell>
+                        <TableCell className="text-right">
+                        {formatCurrency(order.totalAmount)}
+                        </TableCell>
+                    </TableRow>
+                    ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
