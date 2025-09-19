@@ -37,7 +37,7 @@ import {
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { getProducts } from '@/lib/services/product-service';
+import { getSelfServiceProducts } from '@/lib/services/product-service';
 import { addPurchase, getPurchasesByCedula, type NewPurchase, type Purchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 
@@ -67,7 +67,7 @@ export default function SelfServicePage() {
   useEffect(() => {
     async function loadProducts() {
         try {
-            const fetchedProducts = await getProducts();
+            const fetchedProducts = await getSelfServiceProducts();
             setProducts(fetchedProducts);
         } catch (error) {
             console.error("Error fetching products:", error);

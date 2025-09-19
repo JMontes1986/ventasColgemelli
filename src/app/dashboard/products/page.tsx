@@ -37,6 +37,8 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { getProducts, addProduct, addProductWithId, type NewProduct, updateProduct } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 
 function ProductForm({ 
     mode, 
@@ -54,6 +56,7 @@ function ProductForm({
     const [price, setPrice] = useState(initialData?.price.toString() || '');
     const [stock, setStock] = useState(initialData?.stock.toString() || '');
     const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
+    const [isSelfService, setIsSelfService] = useState(initialData?.isSelfService || false);
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
@@ -62,11 +65,13 @@ function ProductForm({
             setPrice(initialData.price.toString());
             setStock(initialData.stock.toString());
             setImageUrl(initialData.imageUrl);
+            setIsSelfService(initialData.isSelfService);
         } else if (isOpen && mode === 'create') {
             setName('');
             setPrice('');
             setStock('');
             setImageUrl('');
+            setIsSelfService(false);
         }
     }, [isOpen, mode, initialData]);
 
@@ -79,7 +84,8 @@ function ProductForm({
                 price: parseFloat(price),
                 stock: parseInt(stock, 10),
                 imageUrl: imageUrl || `https://picsum.photos/seed/${name.replace(/\s/g, '')}/400/400`,
-                imageHint: name.toLowerCase().split(' ').slice(0,2).join(' ')
+                imageHint: name.toLowerCase().split(' ').slice(0,2).join(' '),
+                isSelfService,
             };
 
             try {
@@ -97,7 +103,8 @@ function ProductForm({
                 price: parseFloat(price),
                 stock: parseInt(stock, 10),
                 imageUrl,
-                imageHint: name.toLowerCase().split(' ').slice(0,2).join(' ')
+                imageHint: name.toLowerCase().split(' ').slice(0,2).join(' '),
+                isSelfService,
             };
             try {
                 await updateProduct(initialData.id, updatedProductData);
@@ -154,6 +161,10 @@ function ProductForm({
                         <div className="space-y-2">
                             <Label htmlFor="product-image-url">URL de la Imagen</Label>
                             <Input id="product-image-url" placeholder="https://ejemplo.com/imagen.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Switch id="is-self-service" checked={isSelfService} onCheckedChange={setIsSelfService} />
+                            <Label htmlFor="is-self-service">Disponible en Autoservicio</Label>
                         </div>
                     </div>
                 </form>
@@ -276,13 +287,18 @@ export default function ProductsPage() {
                 </div>
 
                 <CardContent className="p-4">
-                <h3 className="text-lg font-semibold">{product.name}</h3>
-                <div className="flex justify-between items-center mt-2">
-                    <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
-                    <span className="text-sm font-medium text-muted-foreground">
-                    Stock: {product.stock}
-                    </span>
-                </div>
+                    <div className="flex justify-between items-start">
+                        <h3 className="text-lg font-semibold">{product.name}</h3>
+                        {product.isSelfService && (
+                            <Badge variant="secondary">Autoservicio</Badge>
+                        )}
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                        <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
+                        <span className="text-sm font-medium text-muted-foreground">
+                        Stock: {product.stock}
+                        </span>
+                    </div>
                 </CardContent>
             </Card>
             ))}

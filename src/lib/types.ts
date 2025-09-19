@@ -74,6 +74,7 @@ export type Product = {
     stock: number;
     imageUrl: string;
     imageHint: string;
+    isSelfService: boolean;
 };
 
 // Represents an item in the shopping cart, stored within a Purchase

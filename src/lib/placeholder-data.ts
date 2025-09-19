@@ -18,12 +18,12 @@ export const mockCashboxSessions: CashboxSession[] = [];
 export const mockAuditLogs: AuditLog[] = [];
 
 export const mockProducts: Product[] = [
-    { id: 'prod-1', name: 'Carne Asada', price: 12.50, stock: 50, imageUrl: `https://picsum.photos/seed/CarneAsada/400/400`, imageHint: 'grilled meat' },
-    { id: 'prod-2', name: 'Lechona', price: 15.00, stock: 30, imageUrl: `https://picsum.photos/seed/Lechona/400/400`, imageHint: 'roast pork' },
-    { id: 'prod-3', name: 'Frijoles con Garra', price: 10.00, stock: 60, imageUrl: `https://picsum.photos/seed/FrijolesconGarra/400/400`, imageHint: 'bean stew' },
-    { id: 'prod-4', name: 'Sancocho de Gallina', price: 11.00, stock: 40, imageUrl: `https://picsum.photos/seed/SancochodeGallina/400/400`, imageHint: 'beef soup' },
-    { id: 'prod-5', name: 'Tamal', price: 8.00, stock: 80, imageUrl: `https://picsum.photos/seed/Tamal/400/400`, imageHint: 'tamale' },
-    { id: 'prod-6', name: 'Chorizo Santarrosano', price: 5.50, stock: 100, imageUrl: `https://picsum.photos/seed/ChorizoSantarrosano/400/400`, imageHint: 'sausage' },
-    { id: 'prod-7', name: 'Gaseosa', price: 2.50, stock: 120, imageUrl: `https://picsum.photos/seed/Gaseosa/400/400`, imageHint: 'soda can' },
-    { id: 'prod-8', name: 'Botella de Agua', price: 1.00, stock: 150, imageUrl: `https://picsum.photos/seed/BotelladeAgua/400/400`, imageHint: 'water bottle' },
+    { id: 'prod-1', name: 'Carne Asada', price: 12.50, stock: 50, imageUrl: `https://picsum.photos/seed/CarneAsada/400/400`, imageHint: 'grilled meat', isSelfService: true },
+    { id: 'prod-2', name: 'Lechona', price: 15.00, stock: 30, imageUrl: `https://picsum.photos/seed/Lechona/400/400`, imageHint: 'roast pork', isSelfService: true },
+    { id: 'prod-3', name: 'Frijoles con Garra', price: 10.00, stock: 60, imageUrl: `https://picsum.photos/seed/FrijolesconGarra/400/400`, imageHint: 'bean stew', isSelfService: false },
+    { id: 'prod-4', name: 'Sancocho de Gallina', price: 11.00, stock: 40, imageUrl: `https://picsum.photos/seed/SancochodeGallina/400/400`, imageHint: 'beef soup', isSelfService: false },
+    { id: 'prod-5', name: 'Tamal', price: 8.00, stock: 80, imageUrl: `https://picsum.photos/seed/Tamal/400/400`, imageHint: 'tamale', isSelfService: true },
+    { id: 'prod-6', name: 'Chorizo Santarrosano', price: 5.50, stock: 100, imageUrl: `https://picsum.photos/seed/ChorizoSantarrosano/400/400`, imageHint: 'sausage', isSelfService: true },
+    { id: 'prod-7', name: 'Gaseosa', price: 2.50, stock: 120, imageUrl: `https://picsum.photos/seed/Gaseosa/400/400`, imageHint: 'soda can', isSelfService: true },
+    { id: 'prod-8', name: 'Botella de Agua', price: 1.00, stock: 150, imageUrl: `https://picsum.photos/seed/BotelladeAgua/400/400`, imageHint: 'water bottle', isSelfService: true },
 ];

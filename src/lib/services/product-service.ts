@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, doc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where } from "firebase/firestore";
 import type { Product } from "@/lib/types";
 
 // Type for creating a new product, ID is optional as Firestore will generate it
@@ -10,6 +10,15 @@ export type UpdatableProduct = Partial<NewProduct>;
 export async function getProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
   const productSnapshot = await getDocs(productsCol);
+  const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+  return productList;
+}
+
+// Function to get only products marked for self-service
+export async function getSelfServiceProducts(): Promise<Product[]> {
+  const productsCol = collection(db, 'products');
+  const q = query(productsCol, where("isSelfService", "==", true));
+  const productSnapshot = await getDocs(q);
   const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
   return productList;
 }
@@ -30,6 +39,7 @@ export async function addProductWithId(product: Product): Promise<void> {
         stock: product.stock,
         imageUrl: product.imageUrl,
         imageHint: product.imageHint,
+        isSelfService: product.isSelfService ?? false,
     });
 }
 
