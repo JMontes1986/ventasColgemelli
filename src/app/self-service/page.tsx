@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import type { Product } from '@/lib/types';
-import { mockProducts } from '@/lib/placeholder-data';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +36,9 @@ import {
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { getProducts } from '@/lib/services/product-service';
+import { useToast } from '@/hooks/use-toast';
+
 
 type CartItem = {
   id: string;
@@ -58,6 +60,8 @@ type Purchase = {
 const PURCHASE_HISTORY_KEY = 'purchase_history';
 
 export default function SelfServicePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
@@ -66,6 +70,22 @@ export default function SelfServicePage() {
   const [cedula, setCedula] = useState('');
   const [celular, setCelular] = useState('');
   const [searchCedula, setSearchCedula] = useState('');
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function loadProducts() {
+        try {
+            const fetchedProducts = await getProducts();
+            setProducts(fetchedProducts);
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    loadProducts();
+  }, [toast]);
 
   useEffect(() => {
     try {
@@ -184,34 +204,38 @@ export default function SelfServicePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <div className="lg:col-span-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {mockProducts.map((product) => (
-                    <Card key={product.id} className="overflow-hidden group">
-                        <div className="aspect-square relative cursor-pointer" onClick={() => addToCart(product)}>
-                        <Image
-                            src={product.imageUrl}
-                            alt={product.name}
-                            fill
-                            className="object-cover transition-transform group-hover:scale-105"
-                            data-ai-hint={product.imageHint}
-                        />
-                        <div className="absolute inset-0 bg-black/20" />
-                        </div>
-
-                        <CardContent className="p-4">
-                            <h3 className="text-lg font-semibold">{product.name}</h3>
-                            <p className="text-sm text-muted-foreground">{product.category}</p>
-                            <div className="flex justify-between items-center mt-2">
-                                <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
-                                <Button onClick={() => addToCart(product)}>
-                                    <ShoppingCart className="mr-2 h-4 w-4" />
-                                    Agregar
-                                </Button>
+                {isLoading ? (
+                    <p>Cargando productos...</p>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {products.map((product) => (
+                        <Card key={product.id} className="overflow-hidden group">
+                            <div className="aspect-square relative cursor-pointer" onClick={() => addToCart(product)}>
+                            <Image
+                                src={product.imageUrl}
+                                alt={product.name}
+                                fill
+                                className="object-cover transition-transform group-hover:scale-105"
+                                data-ai-hint={product.imageHint}
+                            />
+                            <div className="absolute inset-0 bg-black/20" />
                             </div>
-                        </CardContent>
-                    </Card>
-                    ))}
-                </div>
+
+                            <CardContent className="p-4">
+                                <h3 className="text-lg font-semibold">{product.name}</h3>
+                                <p className="text-sm text-muted-foreground">{product.category}</p>
+                                <div className="flex justify-between items-center mt-2">
+                                    <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
+                                    <Button onClick={() => addToCart(product)}>
+                                        <ShoppingCart className="mr-2 h-4 w-4" />
+                                        Agregar
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div>
@@ -390,8 +414,3 @@ export default function SelfServicePage() {
       </main>
     </div>
   );
-
-    
-
-
-    
