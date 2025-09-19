@@ -1,89 +1,104 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Info, AlertTriangle, Undo2, CheckCircle } from "lucide-react";
-import { getPurchaseById, updatePurchase } from '@/lib/services/purchase-service';
-import { increaseProductStock } from '@/lib/services/product-service';
-import type { Purchase, CartItem } from '@/lib/types';
+import { Undo2, CheckCircle, PackageSearch } from "lucide-react";
+import { getProducts, increaseProductStock } from '@/lib/services/product-service';
+import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/lib/utils';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { formatCurrency } from '@/lib/utils';
 
 export default function ReturnsPage() {
-    const [searchCode, setSearchCode] = useState('');
-    const [purchase, setPurchase] = useState<Purchase | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [selectedProductId, setSelectedProductId] = useState<string>('');
+    const [quantity, setQuantity] = useState(1);
+    const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [searchPerformed, setSearchPerformed] = useState(false);
+    const [lastReturn, setLastReturn] = useState<{ name: string; quantity: number } | null>(null);
     const { toast } = useToast();
 
-    const handleSearch = async (e: React.FormEvent) => {
+    useEffect(() => {
+        async function loadProducts() {
+            setIsLoading(true);
+            try {
+                const fetchedProducts = await getProducts();
+                setProducts(fetchedProducts);
+            } catch (error) {
+                console.error("Error fetching products:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error de Carga',
+                    description: 'No se pudieron cargar los productos.'
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadProducts();
+    }, [toast]);
+
+    const handleReturn = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!searchCode) {
+        if (!selectedProductId) {
             toast({
                 variant: 'destructive',
                 title: 'Campo Requerido',
-                description: 'Por favor ingrese un código de compra.'
+                description: 'Por favor seleccione un producto.'
             });
             return;
         }
 
-        setIsLoading(true);
-        setSearchPerformed(true);
-        setPurchase(null);
-
-        try {
-            const result = await getPurchaseById(searchCode);
-            setPurchase(result);
-        } catch (error) {
-            console.error("Error searching purchase:", error);
+        if (quantity <= 0) {
             toast({
                 variant: 'destructive',
-                title: 'Error de Búsqueda',
-                description: 'No se pudo encontrar la compra. Intente de nuevo.'
+                title: 'Cantidad Inválida',
+                description: 'La cantidad a devolver debe ser mayor que cero.'
             });
-        } finally {
-            setIsLoading(false);
+            return;
         }
-    }
-
-    const handleReturn = async (itemToReturn: Omit<CartItem, 'type'>) => {
-        if (!purchase) return;
 
         setIsProcessing(true);
-        try {
-            // 1. Increase product stock
-            await increaseProductStock(itemToReturn.id, itemToReturn.quantity);
-            
-            // 2. Mark item as returned in the purchase
-            const updatedItems = purchase.items.map(item => 
-                item.id === itemToReturn.id ? { ...item, returned: true } : item
-            );
-            
-            const updatedPurchaseData = { ...purchase, items: updatedItems };
-            await updatePurchase(purchase.id, { items: updatedItems });
+        setLastReturn(null);
 
-            // 3. Update local state to reflect the change
-            setPurchase(updatedPurchaseData);
+        try {
+            await increaseProductStock(selectedProductId, quantity);
+            
+            const returnedProduct = products.find(p => p.id === selectedProductId);
+            
+            if (returnedProduct) {
+                // Update local state to reflect new stock
+                setProducts(prevProducts => 
+                    prevProducts.map(p => 
+                        p.id === selectedProductId 
+                        ? { ...p, stock: p.stock + quantity } 
+                        : p
+                    )
+                );
+                setLastReturn({ name: returnedProduct.name, quantity });
+            }
             
             toast({
                 title: 'Devolución Exitosa',
-                description: `Se devolvió ${itemToReturn.name} (x${itemToReturn.quantity}) al stock.`,
+                description: `Se devolvió ${returnedProduct?.name} (x${quantity}) al stock.`,
             });
+
+            // Reset form
+            setSelectedProductId('');
+            setQuantity(1);
+
         } catch (error) {
             console.error("Error processing return:", error);
             toast({
@@ -95,39 +110,70 @@ export default function ReturnsPage() {
             setIsProcessing(false);
         }
     };
-
+    
+    const selectedProduct = products.find(p => p.id === selectedProductId);
 
     return (
         <div>
             <PageHeader
                 title="Gestión de Devoluciones"
-                description="Busque una compra por código para procesar la devolución de productos."
+                description="Seleccione un producto para devolverlo al inventario."
             />
             <div className="grid gap-8 md:grid-cols-2">
                 <Card>
-                    <form onSubmit={handleSearch}>
+                    <form onSubmit={handleReturn}>
                         <CardHeader>
-                            <CardTitle>Buscar Compra</CardTitle>
+                            <CardTitle>Procesar Devolución de Producto</CardTitle>
                             <CardDescription>
-                                Ingrese el código de la compra (ej. CGX0001) para ver los detalles.
+                                Elija el producto y la cantidad para agregarlo de nuevo al stock.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="purchase-code">Código de Compra</Label>
+                                <Label htmlFor="product-select">Producto a Devolver</Label>
+                                <Select 
+                                    value={selectedProductId}
+                                    onValueChange={setSelectedProductId}
+                                    disabled={isLoading || isProcessing}
+                                >
+                                    <SelectTrigger id="product-select">
+                                        <SelectValue placeholder="Seleccione un producto..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {isLoading ? (
+                                            <SelectItem value="loading" disabled>Cargando productos...</SelectItem>
+                                        ) : (
+                                            products.map(product => (
+                                                <SelectItem key={product.id} value={product.id}>
+                                                    {product.name}
+                                                </SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="quantity">Cantidad a Devolver</Label>
                                 <Input 
-                                    id="purchase-code" 
-                                    placeholder="ej., CGA0042" 
-                                    className="font-mono" 
-                                    value={searchCode}
-                                    onChange={e => setSearchCode(e.target.value)}
+                                    id="quantity" 
+                                    type="number"
+                                    min="1"
+                                    value={quantity}
+                                    onChange={e => setQuantity(Number(e.target.value))}
+                                    disabled={!selectedProductId || isProcessing}
                                 />
                             </div>
+                            {selectedProduct && (
+                                <div className="text-sm text-muted-foreground">
+                                    <p>Stock actual: {selectedProduct.stock}</p>
+                                    <p>Stock después de la devolución: {selectedProduct.stock + quantity}</p>
+                                </div>
+                            )}
                         </CardContent>
                         <CardFooter>
-                            <Button className="w-full" type="submit" disabled={isLoading}>
-                                <Search className="mr-2 h-4 w-4" />
-                                {isLoading ? 'Buscando...' : 'Buscar Compra'}
+                            <Button className="w-full" type="submit" disabled={isProcessing || !selectedProductId}>
+                                <Undo2 className="mr-2 h-4 w-4" />
+                                {isProcessing ? 'Procesando...' : 'Confirmar Devolución'}
                             </Button>
                         </CardFooter>
                     </form>
@@ -135,75 +181,25 @@ export default function ReturnsPage() {
 
                 <Card className="bg-muted/30">
                      <CardHeader>
-                        <CardTitle>Resultados de la Búsqueda</CardTitle>
+                        <CardTitle>Última Devolución</CardTitle>
                         <CardDescription>
-                            Los detalles de la compra encontrada se mostrarán aquí.
+                            Aquí se mostrará la información de la última devolución procesada.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {isLoading ? (
-                            <div className="flex items-center justify-center p-8">
-                                <p>Buscando...</p>
-                            </div>
-                        ) : !searchPerformed ? (
-                             <div className="flex flex-col items-center justify-center text-center gap-4 p-8">
-                                <Info className="h-16 w-16 text-muted-foreground" />
+                        {lastReturn ? (
+                            <div className="flex flex-col items-center justify-center text-center gap-4 p-8 bg-green-500/10 rounded-lg">
+                                <CheckCircle className="h-16 w-16 text-green-600" />
+                                <h3 className="text-xl font-semibold">Devolución Completada</h3>
                                 <p className="text-muted-foreground">
-                                   Ingrese un código y haga clic en "Buscar Compra".
+                                   Se devolvieron <span className="font-bold">{lastReturn.quantity}</span> unidades de <span className="font-bold">{lastReturn.name}</span> al inventario.
                                 </p>
-                            </div>
-                        ) : purchase ? (
-                            <div>
-                                <div className="mb-4 space-y-1">
-                                    <p><strong>Código:</strong> <span className="font-mono">{purchase.id}</span></p>
-                                    <p><strong>Fecha:</strong> {purchase.date}</p>
-                                    <p><strong>Cliente:</strong> Cédula {purchase.cedula} / Celular {purchase.celular}</p>
-                                    <p className="text-lg font-bold">Total: {formatCurrency(purchase.total)}</p>
-                                </div>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Producto</TableHead>
-                                            <TableHead>Cant.</TableHead>
-                                            <TableHead>Precio</TableHead>
-                                            <TableHead className="text-right">Acción</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {purchase.items.map(item => (
-                                            <TableRow key={item.id}>
-                                                <TableCell>{item.name}</TableCell>
-                                                <TableCell>{item.quantity}</TableCell>
-                                                <TableCell>{formatCurrency(item.price)}</TableCell>
-                                                <TableCell className="text-right">
-                                                    {item.returned ? (
-                                                        <div className="flex items-center justify-end text-green-600 gap-2">
-                                                            <CheckCircle className="h-4 w-4" />
-                                                            <span>Devuelto</span>
-                                                        </div>
-                                                    ) : (
-                                                        <Button 
-                                                            variant="outline" 
-                                                            size="sm" 
-                                                            onClick={() => handleReturn(item)}
-                                                            disabled={isProcessing}
-                                                        >
-                                                            <Undo2 className="mr-2 h-4 w-4" />
-                                                            Devolver
-                                                        </Button>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
                             </div>
                         ) : (
                              <div className="flex flex-col items-center justify-center text-center gap-4 p-8">
-                                <AlertTriangle className="h-16 w-16 text-destructive" />
-                                <h3 className="text-xl font-semibold">No se encontró la compra</h3>
+                                <PackageSearch className="h-16 w-16 text-muted-foreground" />
                                 <p className="text-muted-foreground">
-                                   Verifique que el código sea correcto e intente nuevamente.
+                                   Complete el formulario para procesar una devolución.
                                 </p>
                             </div>
                         )}
@@ -213,5 +209,3 @@ export default function ReturnsPage() {
         </div>
     );
 }
-
-    
