@@ -1,69 +1,176 @@
+
+"use client";
+
+import { useState } from 'react';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { QrCode, TicketCheck, AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Search, Info, CheckCircle, TicketCheck, AlertTriangle } from "lucide-react";
+import { getPurchasesByCedula, getPurchaseById } from '@/lib/services/purchase-service';
+import type { Purchase } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function RedeemPage() {
+    const [searchCedula, setSearchCedula] = useState('');
+    const [searchCelular, setSearchCelular] = useState('');
+    const [searchCode, setSearchCode] = useState('');
+    const [searchResults, setSearchResults] = useState<Purchase[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [searchPerformed, setSearchPerformed] = useState(false);
+    const { toast } = useToast();
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!searchCedula && !searchCelular && !searchCode) {
+            toast({
+                variant: 'destructive',
+                title: 'Campo Requerido',
+                description: 'Por favor ingrese al menos un criterio de búsqueda.'
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        setSearchPerformed(true);
+        setSearchResults([]);
+
+        try {
+            let results: Purchase[] = [];
+            if (searchCode) {
+                const purchase = await getPurchaseById(searchCode);
+                if (purchase) {
+                    results.push(purchase);
+                }
+            } else if (searchCedula) {
+                // Assuming search by celular would also be useful here if cedula is the primary lookup key
+                 const purchases = await getPurchasesByCedula(searchCedula);
+                 if (searchCelular) {
+                     results = purchases.filter(p => p.celular.includes(searchCelular));
+                 } else {
+                     results = purchases;
+                 }
+            }
+            setSearchResults(results);
+        } catch (error) {
+            console.error("Error searching purchases:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error de Búsqueda',
+                description: 'No se pudieron encontrar las compras. Intente de nuevo.'
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
     return (
         <div>
             <PageHeader
-                title="Canjear Boleto"
-                description="Escanee o ingrese un código de boleto para validarlo y canjearlo."
+                title="Verificar y Canjear Compra"
+                description="Busque una compra por código, cédula o celular para verificar y entregar."
             />
             <div className="grid gap-8 md:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Escanear Boleto</CardTitle>
+                        <CardTitle>Buscar Compra</CardTitle>
                         <CardDescription>
-                            Ingrese el código único del código QR del boleto a continuación.
+                            Ingrese uno o más campos para encontrar el registro de la compra.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form className="space-y-4">
+                        <form id="search-form" onSubmit={handleSearch} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="ticket-code">Código del Boleto</Label>
-                                <Input id="ticket-code" placeholder="ej., CG2024-C3D4" className="font-mono" />
+                                <Label htmlFor="ticket-code">Código de Pago</Label>
+                                <Input id="ticket-code" placeholder="ej., aBcDeFg123" className="font-mono" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="cedula">Cédula del Cliente</Label>
+                                <Input id="cedula" placeholder="ej., 123456789" value={searchCedula} onChange={e => setSearchCedula(e.target.value)} />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="celular">Celular del Cliente</Label>
+                                <Input id="celular" placeholder="ej., 3001234567" value={searchCelular} onChange={e => setSearchCelular(e.target.value)} />
                             </div>
                         </form>
                     </CardContent>
                     <CardFooter>
-                         <Button className="w-full">
-                            <QrCode className="mr-2 h-4 w-4" />
-                            Canjear Boleto
+                         <Button className="w-full" type="submit" form="search-form" disabled={isLoading}>
+                            <Search className="mr-2 h-4 w-4" />
+                            {isLoading ? 'Buscando...' : 'Buscar Compra'}
                         </Button>
                     </CardFooter>
                 </Card>
 
                 <Card className="bg-muted/30">
                      <CardHeader>
-                        <CardTitle>Estado del Último Escaneo</CardTitle>
+                        <CardTitle>Resultados de la Búsqueda</CardTitle>
                         <CardDescription>
-                            Resultado del intento de canje más reciente.
+                            Las compras encontradas se mostrarán a continuación.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-8">
-                        <TicketCheck className="h-16 w-16 text-green-500" />
-                        <h3 className="text-xl font-semibold">Boleto Canjeado Exitosamente</h3>
-                        <p className="text-muted-foreground">
-                           Código: <span className="font-mono">CG2024-C3D4</span>
-                        </p>
-                        <Badge variant="outline" className="bg-blue-500/20 text-blue-700">
-                            Canjeado
-                        </Badge>
+                    <CardContent className="p-6">
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center text-center gap-4 p-8">
+                                <p>Buscando...</p>
+                            </div>
+                        ) : !searchPerformed ? (
+                             <div className="flex flex-col items-center justify-center text-center gap-4 p-8">
+                                <Info className="h-16 w-16 text-muted-foreground" />
+                                <p className="text-muted-foreground">
+                                   Ingrese los datos de búsqueda y haga clic en "Buscar Compra".
+                                </p>
+                            </div>
+                        ) : searchResults.length > 0 ? (
+                            <ScrollArea className="h-[400px]">
+                                <div className="space-y-4">
+                                    {searchResults.map(purchase => (
+                                        <Card key={purchase.id}>
+                                            <CardHeader>
+                                                <CardTitle className="text-lg">Código: <span className="font-mono">{purchase.id}</span></CardTitle>
+                                                <CardDescription>
+                                                    Fecha: {purchase.date} | Cédula: {purchase.cedula} | Celular: {purchase.celular}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <h4 className="font-semibold mb-2">Artículos Comprados:</h4>
+                                                <ul className="list-disc list-inside space-y-1 text-sm">
+                                                    {purchase.items.map(item => (
+                                                        <li key={item.id}>
+                                                            {item.name} (x{item.quantity}) - {formatCurrency(item.price * item.quantity)}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                                <p className="font-bold text-right mt-2">Total: {formatCurrency(purchase.total)}</p>
+                                            </CardContent>
+                                            <CardFooter>
+                                                <Button className="w-full bg-green-600 hover:bg-green-700">
+                                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                                    Marcar como Entregado
+                                                </Button>
+                                            </CardFooter>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        ) : (
+                             <div className="flex flex-col items-center justify-center text-center gap-4 p-8">
+                                <AlertTriangle className="h-16 w-16 text-destructive" />
+                                <h3 className="text-xl font-semibold">No se encontraron compras</h3>
+                                <p className="text-muted-foreground">
+                                   Verifique los datos ingresados e intente nuevamente.
+                                </p>
+                            </div>
+                        )}
                     </CardContent>
-                    {/* Ejemplo de un estado de error */}
-                    {/* <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-8">
-                        <AlertTriangle className="h-16 w-16 text-destructive" />
-                        <h3 className="text-xl font-semibold">Boleto Inválido o Canjeado</h3>
-                        <p className="text-muted-foreground">
-                           Este boleto ya ha sido utilizado o no existe.
-                        </p>
-                    </CardContent> */}
                 </Card>
             </div>
         </div>
     );
 }
+
+    
