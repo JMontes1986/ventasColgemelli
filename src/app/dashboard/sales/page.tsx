@@ -26,7 +26,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Ticket as TicketIcon } from "lucide-react";
 import { formatCurrency } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
+import { addPurchase, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
+import { useMockAuth } from '@/hooks/use-mock-auth';
 
 type CartItem = {
   id: string;
@@ -42,6 +44,8 @@ export default function SalesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { role, users, isMounted } = useMockAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     async function loadProducts() {
@@ -94,6 +98,37 @@ export default function SalesPage() {
     setCart([]);
     setCustomerPayment(0);
   };
+
+  const handlePurchase = async () => {
+    if (cart.length === 0) {
+        toast({ variant: "destructive", title: "Error", description: "El carrito está vacío." });
+        return;
+    }
+    setIsProcessing(true);
+
+    const currentUser = users.find(u => u.role === role);
+
+    const newPurchaseData: NewPurchase = {
+        date: new Date().toLocaleString('es-CO'),
+        total: subtotal,
+        items: cart.filter(item => item.type === 'product'), // Assuming we only sell products for now
+        cedula: 'N/A', // Not required for POS sales
+        celular: 'N/A',
+        sellerId: currentUser?.id,
+        sellerName: currentUser?.name,
+    };
+
+    try {
+        await addPurchase(newPurchaseData);
+        toast({ title: "Venta Exitosa", description: "La compra ha sido registrada." });
+        clearCart();
+    } catch (error) {
+        console.error("Error creating purchase:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo registrar la venta." });
+    } finally {
+        setIsProcessing(false);
+    }
+  }
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const change = customerPayment - subtotal;
@@ -228,8 +263,12 @@ export default function SalesPage() {
                 </div>
             </CardContent>
             <CardFooter className="flex gap-2">
-                 <Button className="w-full text-lg h-12 bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
-                    Comprar
+                 <Button 
+                    className="w-full text-lg h-12 bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
+                    onClick={handlePurchase}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? 'Procesando...' : 'Comprar'}
                 </Button>
                 <Button variant="destructive" className="w-full text-lg h-12" onClick={clearCart}>
                     Borrar Todo
