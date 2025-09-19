@@ -62,15 +62,16 @@ export default function SelfServicePage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
   const [paymentCode, setPaymentCode] = useState<string | null>(null);
-  const [purchaseHistory, setPurchaseHistory] = useState<Purchase[]>([]);
+  const [allPurchases, setAllPurchases] = useState<Purchase[]>([]);
   const [cedula, setCedula] = useState('');
   const [celular, setCelular] = useState('');
+  const [searchCedula, setSearchCedula] = useState('');
 
   useEffect(() => {
     try {
         const storedHistory = localStorage.getItem(PURCHASE_HISTORY_KEY);
         if (storedHistory) {
-            setPurchaseHistory(JSON.parse(storedHistory));
+            setAllPurchases(JSON.parse(storedHistory));
         }
     } catch (error) {
         console.warn("Could not read purchase history from localStorage", error);
@@ -130,8 +131,8 @@ export default function SelfServicePage() {
         celular,
     };
 
-    const updatedHistory = [newPurchase, ...purchaseHistory];
-    setPurchaseHistory(updatedHistory);
+    const updatedHistory = [newPurchase, ...allPurchases];
+    setAllPurchases(updatedHistory);
     try {
         localStorage.setItem(PURCHASE_HISTORY_KEY, JSON.stringify(updatedHistory));
     } catch (error) {
@@ -152,6 +153,8 @@ export default function SelfServicePage() {
   }
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+  const filteredHistory = allPurchases.filter(p => p.cedula.includes(searchCedula));
 
   return (
     <div className="min-h-screen bg-background">
@@ -272,12 +275,23 @@ export default function SelfServicePage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <History className="h-6 w-6" />
-                        Historial de Compras
+                        Mi Historial de Compras
                     </CardTitle>
+                    <div className="pt-2">
+                        <Label htmlFor="search-cedula">Buscar por Cédula</Label>
+                        <Input 
+                            id="search-cedula"
+                            placeholder="Ingrese su número de cédula para ver sus compras"
+                            value={searchCedula}
+                            onChange={(e) => setSearchCedula(e.target.value)}
+                        />
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    {purchaseHistory.length === 0 ? (
-                        <p className="text-center text-muted-foreground">No hay compras en su historial.</p>
+                    {searchCedula && filteredHistory.length === 0 ? (
+                        <p className="text-center text-muted-foreground">No se encontraron compras para esta cédula.</p>
+                    ) : !searchCedula ? (
+                         <p className="text-center text-muted-foreground">Ingrese su cédula para buscar su historial.</p>
                     ) : (
                         <Table>
                             <TableHeader>
@@ -290,7 +304,7 @@ export default function SelfServicePage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {purchaseHistory.map((purchase) => (
+                                {filteredHistory.map((purchase) => (
                                     <TableRow key={purchase.code}>
                                         <TableCell className="font-mono">{purchase.code}</TableCell>
                                         <TableCell>{purchase.date}</TableCell>
