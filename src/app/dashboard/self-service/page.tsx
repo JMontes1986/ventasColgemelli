@@ -39,6 +39,7 @@ import { Input } from '@/components/ui/input';
 import { getSelfServiceProducts } from '@/lib/services/product-service';
 import { addPurchase, getPurchasesByCedula, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 
 type CartItem = {
@@ -77,7 +78,7 @@ export default function SelfServicePage() {
     } finally {
         setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadProducts();
@@ -342,7 +343,7 @@ export default function SelfServicePage() {
                       <TableCell>{purchase.date}</TableCell>
                       <TableCell>
                          <Badge variant={purchase.status === 'paid' || purchase.status === 'delivered' ? 'default' : 'secondary'} className={purchase.status === 'paid' || purchase.status === 'delivered' ? 'bg-green-500/20 text-green-700' : ''}>
-                            {purchase.status === 'pending' ? 'Pendiente' : 'Pagado'}
+                            {purchase.status === 'pending' ? 'Pendiente' : purchase.status === 'paid' ? 'Pagado' : purchase.status === 'delivered' ? 'Entregado' : 'Cancelado'}
                          </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(purchase.total)}</TableCell>
@@ -424,3 +425,5 @@ export default function SelfServicePage() {
     </div>
   );
 }
+
+    
