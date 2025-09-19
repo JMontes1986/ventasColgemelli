@@ -66,15 +66,16 @@ export function SidebarNav() {
           {navItems.map((item) => (
             <RoleGate key={item.href} allowedRoles={item.allowedRoles}>
               <SidebarMenuItem>
-                <Link href={item.href} legacyBehavior passHref>
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    icon={item.icon}
-                    tooltip={item.label}
-                  >
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href}
+                  icon={item.icon}
+                  tooltip={item.label}
+                >
+                  <Link href={item.href}>
                     {item.label}
-                  </SidebarMenuButton>
-                </Link>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </RoleGate>
           ))}
@@ -84,15 +85,16 @@ export function SidebarNav() {
             <SidebarMenu>
             {adminNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                    <Link href={item.href} legacyBehavior passHref>
                     <SidebarMenuButton
-                        isActive={pathname === item.href}
-                        icon={item.icon}
-                        tooltip={item.label}
+                      asChild
+                      isActive={pathname === item.href}
+                      icon={item.icon}
+                      tooltip={item.label}
                     >
+                      <Link href={item.href}>
                         {item.label}
+                      </Link>
                     </SidebarMenuButton>
-                    </Link>
                 </SidebarMenuItem>
             ))}
             </SidebarMenu>
