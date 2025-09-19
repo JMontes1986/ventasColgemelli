@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "avatar-1",
+      "description": "User avatar for Ana Garcia",
+      "imageUrl": "https://picsum.photos/seed/user1/100/100",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "avatar-2",
+      "description": "User avatar for Carlos Ruiz",
+      "imageUrl": "https://picsum.photos/seed/user2/100/100",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "avatar-3",
+      "description": "User avatar for Sofia Gomez",
+      "imageUrl": "https://picsum.photos/seed/user3/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "avatar-4",
+      "description": "User avatar for David Chen",
+      "imageUrl": "https://picsum.photos/seed/user4/100/100",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "avatar-5",
+      "description": "User avatar for Maria Rodriguez",
+      "imageUrl": "https://picsum.photos/seed/user5/100/100",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "logo",
+      "description": "Ventas ColGemelli Logo",
+      "imageUrl": "https://picsum.photos/seed/logo/200/50",
+      "imageHint": "school crest"
+    },
+    {
+      "id": "qr-code-placeholder",
+      "description": "Placeholder for a QR code",
+      "imageUrl": "https://picsum.photos/seed/qrcode/200/200",
+      "imageHint": "qr code"
+    }
+  ]
 }
