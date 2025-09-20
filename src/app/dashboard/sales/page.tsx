@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, Ticket as TicketIcon, Hourglass } from "lucide-react";
+import { Trash2, Plus, Minus, Ticket as TicketIcon, Hourglass, Search } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
 import { addPurchase, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
@@ -59,11 +59,10 @@ export default function SalesPage() {
             getProducts(),
             getPurchases(),
         ]);
-        setProducts(fetchedProducts);
+        setProducts(fetchedProducts.filter(p => p.stock > 0 && p.isPosAvailable));
         setPurchases(fetchedPurchases);
     } catch (error) {
         console.error("Error fetching data:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos de ventas." });
     } finally {
         setIsLoading(false);
     }
@@ -119,7 +118,7 @@ export default function SalesPage() {
       }
       const name = type === 'product' ? (item as Product).name : (item as Ticket).uniqueCode;
       const stock = type === 'product' ? (item as Product).stock : undefined;
-      return [...prevCart, { id: item.id, name, name, price: item.price, quantity: 1, type, stock }];
+      return [...prevCart, { id: item.id, name: name, price: item.price, quantity: 1, type, stock }];
     });
   };
 
@@ -190,6 +189,7 @@ export default function SalesPage() {
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const change = customerPayment - subtotal;
   
+  const allProducts = products;
   const productsForSale = products.filter(p => p.isPosAvailable);
 
   return (
@@ -212,12 +212,13 @@ export default function SalesPage() {
                             <p className="text-muted-foreground p-3">Cargando productos...</p>
                          ) : (
                             <div className="flex flex-col gap-2">
-                                {productsForSale.length === 0 ? (
+                                {allProducts.length === 0 ? (
                                     <p className="text-muted-foreground p-3">No hay productos disponibles para la venta.</p>
                                 ) : (
-                                    productsForSale.map((product) => {
-                                      const availableStock = product.stock - (pendingQuantities[product.id] || 0);
-                                      const isSoldOut = availableStock <= 0;
+                                    allProducts.filter(p => p.isPosAvailable).map((product) => {
+                                      const pending = pendingQuantities[product.id] || 0;
+                                      const availableStock = product.stock - pending;
+                                      const isSoldOut = product.stock <= 0;
                                       return (
                                         <div key={product.id} className={cn("flex items-center justify-between p-3 bg-muted/50 rounded-lg", isSoldOut && "opacity-50")}>
                                             <div className="flex items-center gap-3">
@@ -239,10 +240,10 @@ export default function SalesPage() {
                                                     <Badge variant="destructive">Agotado</Badge>
                                                 ) : (
                                                     <div className='flex items-center gap-2'>
-                                                        {pendingQuantities[product.id] > 0 && (
-                                                            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700">Pendientes: {pendingQuantities[product.id]}</Badge>
+                                                        {pending > 0 && (
+                                                            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700">Pendientes: {pending}</Badge>
                                                         )}
-                                                        <Badge variant="outline">Stock: {availableStock}</Badge>
+                                                        <Badge variant="outline">Stock: {product.stock}</Badge>
                                                     </div>
                                                 )}
                                                 <Button onClick={() => addToCart(product, 'product')} disabled={isSoldOut}>
@@ -282,25 +283,28 @@ export default function SalesPage() {
                                         <TableHead>Código</TableHead>
                                         <TableHead>Cliente (Cédula)</TableHead>
                                         <TableHead className="text-right">Monto</TableHead>
+                                        <TableHead className="text-right">Acción</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {pendingSelfServicePurchases.map((purchase) => (
-                                        <TableRow key={purchase.id} className="hover:bg-accent cursor-pointer">
+                                        <TableRow key={purchase.id}>
                                             <TableCell className="font-mono">
-                                                <Link href={`/dashboard/redeem?code=${purchase.id}`} className="block w-full h-full">
-                                                    {purchase.id}
-                                                </Link>
+                                                {purchase.id}
                                             </TableCell>
                                             <TableCell>
-                                                <Link href={`/dashboard/redeem?code=${purchase.id}`} className="block w-full h-full">
-                                                    {purchase.cedula}
-                                                </Link>
+                                                {purchase.cedula}
                                             </TableCell>
                                             <TableCell className="text-right font-medium">
-                                                <Link href={`/dashboard/redeem?code=${purchase.id}`} className="block w-full h-full">
-                                                    {formatCurrency(purchase.total)}
-                                                </Link>
+                                                {formatCurrency(purchase.total)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button asChild variant="outline" size="sm">
+                                                    <Link href={`/dashboard/redeem?code=${purchase.id}`}>
+                                                        <Search className="mr-2 h-4 w-4" />
+                                                        Verificar
+                                                    </Link>
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
