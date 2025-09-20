@@ -58,87 +58,52 @@ function UserForm({
     mode,
     initialData,
     onUserAdded,
-    onUserUpdated,
 }: {
-    mode: 'create' | 'edit';
+    mode: 'create';
     initialData?: User;
     onUserAdded: (user: User) => void;
-    onUserUpdated: (user: User) => void;
 }) {
     const { toast } = useToast();
     const [name, setName] = useState(initialData?.name || '');
     const [username, setUsername] = useState(initialData?.username || '');
     const [password, setPassword] = useState('');
-    const [permissions, setPermissions] = useState<ModulePermission[]>(initialData?.permissions || []);
     const [isOpen, setIsOpen] = useState(false);
 
     const handleOpenChange = (open: boolean) => {
         setIsOpen(open);
         if (open) {
-            if (mode === 'edit' && initialData) {
-                setName(initialData.name);
-                setUsername(initialData.username);
-                setPassword('');
-                setPermissions(initialData.permissions || []);
-            } else {
-                setName('');
-                setUsername('');
-                setPassword('');
-                setPermissions([]);
-            }
+            setName('');
+            setUsername('');
+            setPassword('');
         }
-    };
-
-    const handlePermissionChange = (permission: ModulePermission, checked: boolean) => {
-        setPermissions(prev =>
-            checked ? [...prev, permission] : prev.filter(p => p !== permission)
-        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (mode === 'create') {
-            const newUserData: NewUser = {
-                name,
-                username,
-                password,
-                permissions,
-                avatarUrl: `https://picsum.photos/seed/${name.replace(/\s/g, '')}/100/100`,
-            };
+        const newUserData: NewUser = {
+            name,
+            username,
+            password,
+            permissions: allModules, // All new users get all permissions
+            avatarUrl: `https://picsum.photos/seed/${name.replace(/\s/g, '')}/100/100`,
+        };
 
-            try {
-                const addedUser = await addUser(newUserData);
-                onUserAdded(addedUser);
-                toast({ title: "Éxito", description: "Usuario añadido correctamente." });
-                setIsOpen(false);
-            } catch (error) {
-                console.error("Error adding user:", error);
-                toast({ variant: "destructive", title: "Error", description: "No se pudo añadir el usuario." });
-            }
-        } else if (mode === 'edit' && initialData) {
-            try {
-                await updateUserPermissions(initialData.id, permissions);
-                const updatedUser = { ...initialData, permissions };
-                onUserUpdated(updatedUser);
-                toast({ title: "Éxito", description: "Permisos actualizados." });
-                setIsOpen(false);
-            } catch (error) {
-                console.error("Error updating user:", error);
-                toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el usuario." });
-            }
+        try {
+            const addedUser = await addUser(newUserData);
+            onUserAdded(addedUser);
+            toast({ title: "Éxito", description: "Usuario añadido correctamente." });
+            setIsOpen(false);
+        } catch (error) {
+            console.error("Error adding user:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudo añadir el usuario." });
         }
     };
 
-    const trigger = mode === 'create' ? (
+    const trigger = (
         <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
             Crear Usuario
-        </Button>
-    ) : (
-         <Button variant="outline" size="sm">
-            <Edit className="mr-2 h-4 w-4" />
-            Editar Permisos
         </Button>
     );
 
@@ -147,47 +112,30 @@ function UserForm({
             <DialogTrigger asChild>{trigger}</DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{mode === 'create' ? 'Crear Nuevo Usuario' : 'Editar Permisos'}</DialogTitle>
+                    <DialogTitle>Crear Nuevo Usuario</DialogTitle>
                     <DialogDescription>
-                        {mode === 'create' ? 'Complete los detalles del nuevo usuario.' : `Editando permisos para ${initialData?.name}.`}
+                        Complete los detalles del nuevo usuario. Todos los usuarios nuevos tendrán permisos de administrador.
                     </DialogDescription>
                 </DialogHeader>
                 <form id={`user-form-${initialData?.id || 'create'}`} onSubmit={handleSubmit}>
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="user-name">Nombre Completo</Label>
-                            <Input id="user-name" placeholder="Ej: Juan Pérez" value={name} onChange={e => setName(e.target.value)} required disabled={mode === 'edit'} />
+                            <Input id="user-name" placeholder="Ej: Juan Pérez" value={name} onChange={e => setName(e.target.value)} required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="user-username">Nombre de Usuario</Label>
-                            <Input id="user-username" placeholder="ej: juan.perez" value={username} onChange={e => setUsername(e.target.value)} required disabled={mode === 'edit'} />
+                            <Input id="user-username" placeholder="ej: juan.perez" value={username} onChange={e => setUsername(e.target.value)} required />
                         </div>
-                        {mode === 'create' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="user-password">Contraseña</Label>
-                                <Input id="user-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-                            </div>
-                        )}
                         <div className="space-y-2">
-                            <Label>Permisos de Módulo</Label>
-                            <div className="space-y-2 rounded-md border p-4 max-h-60 overflow-y-auto">
-                                {allModules.map(permission => (
-                                    <div key={permission} className="flex items-center justify-between">
-                                        <Label htmlFor={`perm-${permission}`}>{moduleNames[permission]}</Label>
-                                        <Switch
-                                            id={`perm-${permission}`}
-                                            checked={permissions.includes(permission)}
-                                            onCheckedChange={(checked) => handlePermissionChange(permission, checked)}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
+                            <Label htmlFor="user-password">Contraseña</Label>
+                            <Input id="user-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                         </div>
                     </div>
                 </form>
                 <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
-                    <Button type="submit" form={`user-form-${initialData?.id || 'create'}`}>{mode === 'create' ? 'Guardar Usuario' : 'Guardar Cambios'}</Button>
+                    <Button type="submit" form={`user-form-${initialData?.id || 'create'}`}>Guardar Usuario</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -206,13 +154,11 @@ export default function UsersPage() {
       setIsLoading(true);
       try {
         const fetchedUsers = await getUsers();
-        // Automatically seed users if the list is empty for the first time
         if (fetchedUsers.length === 0 && !hasSeeded) {
           await addSeedUsers();
           const freshUsers = await getUsers();
           setUsers(freshUsers);
           setHasSeeded(true);
-          toast({ title: "Éxito", description: "Se cargaron los usuarios de ejemplo." });
         } else {
           setUsers(fetchedUsers);
         }
@@ -230,25 +176,21 @@ export default function UsersPage() {
     setUsers(prevUsers => [...prevUsers, newUser]);
   };
 
-  const handleUserUpdated = (updatedUser: User) => {
-      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-  };
-
   return (
     <div>
       <PageHeader
         title="Gestión de Usuarios"
-        description="Administrar usuarios y sus permisos de acceso a módulos."
+        description="Administrar usuarios. Actualmente todos los usuarios tienen permisos de administrador."
       >
         <PermissionGate requiredPermission="users">
-           <UserForm mode="create" onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
+           <UserForm mode="create" onUserAdded={handleUserAdded} />
         </PermissionGate>
       </PageHeader>
       <Card>
         <CardHeader>
           <CardTitle>Usuarios</CardTitle>
           <CardDescription>
-            Una lista de todos los usuarios y los módulos a los que tienen acceso.
+            Una lista de todos los usuarios del sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -260,7 +202,6 @@ export default function UsersPage() {
                 <TableRow>
                     <TableHead>Usuario</TableHead>
                     <TableHead>Permisos</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -280,17 +221,8 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>
                         <div className="flex flex-wrap gap-1 max-w-md">
-                           {(user.permissions?.map(p => (
-                               <span key={p} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{moduleNames[p]}</span>
-                           )) || <span className="text-xs text-muted-foreground">Sin permisos</span>)}
+                           <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Administrador Total</span>
                         </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <PermissionGate requiredPermission="users">
-                           {currentUser?.id !== user.id && (
-                             <UserForm mode="edit" initialData={user} onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
-                           )}
-                        </PermissionGate>
                     </TableCell>
                     </TableRow>
                 ))}
@@ -302,4 +234,3 @@ export default function UsersPage() {
     </div>
   );
 }
-
