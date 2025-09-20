@@ -425,7 +425,7 @@ export default function SelfServicePage() {
       </Dialog>
 
       <Dialog open={isPaymentModalOpen} onOpenChange={closeModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Código de Pago Generado</DialogTitle>
           </DialogHeader>
@@ -438,7 +438,7 @@ export default function SelfServicePage() {
             <div className="text-center">
                 <p className="text-sm text-muted-foreground">Su código de pago único es:</p>
                 <div className="my-2 p-4 bg-muted rounded-md">
-                <p className="text-3xl font-bold font-mono tracking-widest text-primary">{paymentCode}</p>
+                <p className="text-2xl sm:text-3xl font-bold font-mono tracking-widest text-primary">{paymentCode}</p>
                 </div>
             </div>
 
