@@ -27,9 +27,8 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 import type { ModulePermission } from "@/lib/types";
-import { PermissionGate } from "../permission-gate";
 
-type NavItem = {
+export type NavItem = {
   href: string;
   icon: React.ElementType;
   label: string;
@@ -51,10 +50,7 @@ export const adminNavItems: NavItem[] = [
     { href: "/dashboard/audit", icon: ClipboardList, label: "Auditoría", permission: 'audit' },
 ]
 
-const allNavItems = [...navItems, ...adminNavItems];
-
-
-export function SidebarNav() {
+export function SidebarNav({ navItems: accessibleNavItems }: { navItems: NavItem[] }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useMockAuth();
@@ -63,6 +59,9 @@ export function SidebarNav() {
     logout();
     router.push('/');
   }
+
+  const regularItems = accessibleNavItems.filter(item => navItems.some(nav => nav.href === item.href));
+  const adminItems = accessibleNavItems.filter(item => adminNavItems.some(nav => nav.href === item.href));
 
   return (
     <>
@@ -76,9 +75,8 @@ export function SidebarNav() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {navItems.map((item) => (
-            <PermissionGate key={item.href} requiredPermission={item.permission}>
-              <SidebarMenuItem>
+          {regularItems.map((item) => (
+              <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href}
@@ -90,24 +88,21 @@ export function SidebarNav() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </PermissionGate>
           ))}
-          <SidebarSeparator />
-          {adminNavItems.map((item) => (
-            <PermissionGate key={item.href} requiredPermission={item.permission}>
-                <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === item.href}
-                      icon={item.icon}
-                      tooltip={item.label}
-                    >
-                      <Link href={item.href}>
-                        {item.label}
-                      </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </PermissionGate>
+          {adminItems.length > 0 && <SidebarSeparator />}
+          {adminItems.map((item) => (
+             <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href}
+                  icon={item.icon}
+                  tooltip={item.label}
+                >
+                  <Link href={item.href}>
+                    {item.label}
+                  </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
         ))}
         </SidebarMenu>
       </SidebarContent>

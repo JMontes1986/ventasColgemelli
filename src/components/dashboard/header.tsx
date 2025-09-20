@@ -12,12 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMockAuth } from "@/hooks/use-mock-auth";
-import { TopNav } from "./top-nav";
+import { TopNav, type NavItem } from "./top-nav";
 import Link from "next/link";
 import { Logo } from "../icons";
 import { useRouter } from "next/navigation";
+import { SidebarTrigger } from "../ui/sidebar";
 
-export function Header() {
+export function Header({ navItems }: { navItems: NavItem[] }) {
   const { currentUser, isMounted, logout } = useMockAuth();
   const router = useRouter();
   
@@ -36,12 +37,13 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
-      <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+      <SidebarTrigger className="md:hidden" />
+      <Link href="/dashboard" className="hidden md:flex items-center gap-2 font-semibold">
         <Logo className="h-6 w-6" />
         <span className="">ColGemelli</span>
       </Link>
       
-      <TopNav className="mx-auto" />
+      <TopNav className="mx-auto" navItems={navItems} />
 
       <div className="flex items-center gap-4">
         {currentUser && (

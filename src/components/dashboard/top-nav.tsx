@@ -4,19 +4,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { PermissionGate } from "../permission-gate";
-import { navItems, adminNavItems } from "./sidebar-nav";
+import type { ModulePermission } from "@/lib/types";
 
-// Combine all nav items
-const allNavItems = [
-  ...navItems,
-  ...adminNavItems,
-];
+export type NavItem = {
+  href: string;
+  label: string;
+  permission: ModulePermission;
+};
+
+interface TopNavProps extends React.HTMLAttributes<HTMLElement> {
+    navItems: NavItem[];
+}
 
 export function TopNav({
   className,
+  navItems: accessibleNavItems,
   ...props
-}: React.HTMLAttributes<HTMLElement>) {
+}: TopNavProps) {
   const pathname = usePathname();
 
   return (
@@ -24,18 +28,17 @@ export function TopNav({
       className={cn("hidden items-center space-x-4 lg:space-x-6 md:flex", className)}
       {...props}
     >
-      {allNavItems.map((item) => (
-        <PermissionGate key={item.href} requiredPermission={item.permission}>
-          <Link
-            href={item.href}
-            className={cn(
-              "text-sm font-medium transition-colors hover:text-primary",
-              pathname === item.href ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            {item.label}
-          </Link>
-        </PermissionGate>
+      {accessibleNavItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={cn(
+            "text-sm font-medium transition-colors hover:text-primary",
+            pathname === item.href ? "text-primary" : "text-muted-foreground"
+          )}
+        >
+          {item.label}
+        </Link>
       ))}
     </nav>
   );
