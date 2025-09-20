@@ -64,7 +64,7 @@ export function useMockAuth() {
 
   const hasPermission = (requiredPermission: ModulePermission) => {
       if (!isMounted || !currentUser) return false;
-      return currentUser.permissions.includes(requiredPermission);
+      return currentUser.permissions?.includes(requiredPermission) ?? false;
   }
 
   const permissions = isMounted && currentUser ? currentUser.permissions : [];
