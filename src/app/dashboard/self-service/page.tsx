@@ -408,11 +408,13 @@ export default function SelfServicePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Código de Pago Generado</DialogTitle>
-            <DialogDesc>
-              Su compra está pendiente. Presente este código en la caja para confirmar el pago y recibir sus productos.
-            </DialogDesc>
           </DialogHeader>
           <div className="py-4 space-y-4">
+            <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-md border border-yellow-200 dark:border-yellow-800">
+                <p className="text-base font-semibold">
+                    Su compra está pendiente. Recuerda hacer la transferencia en DAVIPLATA al Número <span className="font-bold">320 676 6574</span> y Presenta este código en la caja para confirmar el pago y recibir sus productos.
+                </p>
+            </div>
             <div className="text-center">
                 <p className="text-sm text-muted-foreground">Su código de pago único es:</p>
                 <div className="my-2 p-4 bg-muted rounded-md">
