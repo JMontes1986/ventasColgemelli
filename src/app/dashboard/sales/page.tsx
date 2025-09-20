@@ -115,7 +115,7 @@ export default function SalesPage() {
       }
       const name = type === 'product' ? (item as Product).name : (item as Ticket).uniqueCode;
       const stock = type === 'product' ? (item as Product).stock : undefined;
-      return [...prevCart, { id: item.id, name, price: item.price, quantity: 1, type, stock }];
+      return [...prevCart, { id: item.id, name, name, price: item.price, quantity: 1, type, stock }];
     });
   };
 
@@ -197,11 +197,11 @@ export default function SalesPage() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Productos y Boletos</CardTitle>
+                    <CardTitle>Productos y Autogestión</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-[60vh]">
-                         <h3 className="text-lg font-semibold mb-2">Boletos</h3>
+                         <h3 className="text-lg font-semibold mb-2">Autogestión</h3>
                          <div className="flex flex-col gap-2 mb-4">
                             {availableTickets.length === 0 ? (
                                 <p className="text-muted-foreground p-3">No hay boletos disponibles.</p>
