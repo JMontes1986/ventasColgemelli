@@ -69,9 +69,9 @@ export default function SelfServicePage() {
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
     try {
-        // The service function now correctly filters by self-service AND stock > 0
         const fetchedProducts = await getSelfServiceProducts();
-        setProducts(fetchedProducts);
+        // Filter products with stock > 0 on the client side
+        setProducts(fetchedProducts.filter(p => p.stock > 0));
     } catch (error) {
         console.error("Error fetching products:", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });

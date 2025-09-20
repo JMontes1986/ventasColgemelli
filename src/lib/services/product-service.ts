@@ -15,14 +15,13 @@ export async function getProducts(): Promise<Product[]> {
   return productList;
 }
 
-// Function to get only products marked for self-service with available stock
+// Function to get only products marked for self-service
 export async function getSelfServiceProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
-  // Query for products that are marked for self-service AND have stock greater than 0
+  // Query for products that are marked for self-service
   const q = query(
     productsCol, 
-    where("isSelfService", "==", true),
-    where("stock", ">", 0)
+    where("isSelfService", "==", true)
   );
   const productSnapshot = await getDocs(q);
   const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
@@ -63,5 +62,3 @@ export async function increaseProductStock(productId: string, quantity: number):
         stock: increment(quantity)
     });
 }
-
-    
