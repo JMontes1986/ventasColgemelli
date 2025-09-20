@@ -38,6 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useMockAuth } from "@/hooks/use-mock-auth";
 
 const moduleNames: Record<ModulePermission, string> = {
   'dashboard': 'Panel de Control',
@@ -135,7 +136,7 @@ function UserForm({
             Crear Usuario
         </Button>
     ) : (
-        <Button variant="outline" size="sm">
+         <Button variant="outline" size="sm">
             <Edit className="mr-2 h-4 w-4" />
             Editar Permisos
         </Button>
@@ -198,14 +199,22 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasSeeded, setHasSeeded] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useMockAuth();
 
   useEffect(() => {
     async function loadUsers() {
+      setIsLoading(true);
       try {
         const fetchedUsers = await getUsers();
-        setUsers(fetchedUsers);
-        if (fetchedUsers.length > 0) {
-            setHasSeeded(true);
+        // Automatically seed users if the list is empty for the first time
+        if (fetchedUsers.length === 0 && !hasSeeded) {
+          await addSeedUsers();
+          const freshUsers = await getUsers();
+          setUsers(freshUsers);
+          setHasSeeded(true);
+          toast({ title: "Éxito", description: "Se cargaron los usuarios de ejemplo." });
+        } else {
+          setUsers(fetchedUsers);
         }
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -215,7 +224,7 @@ export default function UsersPage() {
       }
     }
     loadUsers();
-  }, [toast]);
+  }, [toast, hasSeeded]);
 
   const handleUserAdded = (newUser: User) => {
     setUsers(prevUsers => [...prevUsers, newUser]);
@@ -225,19 +234,6 @@ export default function UsersPage() {
       setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
   };
 
-  const handleSeedDatabase = async () => {
-    try {
-        await addSeedUsers();
-        const fetchedUsers = await getUsers();
-        setUsers(fetchedUsers);
-        setHasSeeded(true);
-        toast({ title: "Éxito", description: "La base de datos ha sido inicializada con usuarios de ejemplo." });
-    } catch (error) {
-        console.error("Error seeding database:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo inicializar la base de datos." });
-    }
-  };
-
   return (
     <div>
       <PageHeader
@@ -245,12 +241,6 @@ export default function UsersPage() {
         description="Administrar usuarios y sus permisos de acceso a módulos."
       >
         <PermissionGate requiredPermission="users">
-            {!hasSeeded && !isLoading && (
-                 <Button variant="outline" onClick={handleSeedDatabase}>
-                    <Database className="mr-2 h-4 w-4" />
-                    Cargar Usuarios de Ejemplo
-                </Button>
-            )}
            <UserForm mode="create" onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
         </PermissionGate>
       </PageHeader>
@@ -290,14 +280,16 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>
                         <div className="flex flex-wrap gap-1 max-w-md">
-                           {user.permissions?.map(p => (
+                           {(user.permissions?.map(p => (
                                <span key={p} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{moduleNames[p]}</span>
-                           )) || <span className="text-xs text-muted-foreground">Sin permisos</span>}
+                           )) || <span className="text-xs text-muted-foreground">Sin permisos</span>)}
                         </div>
                     </TableCell>
                     <TableCell className="text-right">
                         <PermissionGate requiredPermission="users">
-                            <UserForm mode="edit" initialData={user} onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
+                           {currentUser?.id !== user.id && (
+                             <UserForm mode="edit" initialData={user} onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
+                           )}
                         </PermissionGate>
                     </TableCell>
                     </TableRow>
@@ -310,3 +302,4 @@ export default function UsersPage() {
     </div>
   );
 }
+

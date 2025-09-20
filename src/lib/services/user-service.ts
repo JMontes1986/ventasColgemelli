@@ -51,21 +51,13 @@ export async function addUser(user: NewUser): Promise<User> {
 
 // Function to seed initial users from placeholder data
 export async function addSeedUsers(): Promise<void> {
-    const usersCol = collection(db, 'users');
-    const userSnapshot = await getDocs(usersCol);
-    
-    // Only seed if the collection is empty
-    if (userSnapshot.empty) {
-        console.log("Seeding users...");
-        for (const user of mockUsers) {
-            const userRef = doc(db, 'users', user.id);
-            // Don't set the ID field inside the document
-            const { id, ...userData } = user;
-            await setDoc(userRef, userData);
-        }
-    } else {
-        console.log("Users collection is not empty. Skipping seed.");
-    }
+    console.log("Seeding users...");
+    const promises = mockUsers.map(user => {
+        // Use username as the document ID for predictability
+        const userRef = doc(db, 'users', user.username);
+        return setDoc(userRef, user);
+    });
+    await Promise.all(promises);
 }
 
 // Function to update a user's permissions in Firestore

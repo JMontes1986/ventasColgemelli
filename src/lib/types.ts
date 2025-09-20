@@ -15,7 +15,7 @@ export type ModulePermission =
 
 
 export type User = {
-  id: string;
+  id: string; // The document ID from Firestore
   name: string;
   username: string;
   password?: string;

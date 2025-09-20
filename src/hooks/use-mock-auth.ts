@@ -29,6 +29,7 @@ export function useMockAuth() {
             setUsers(allUsers);
 
             if (storedUserId) {
+                // The stored ID is now the username, which is the doc ID
                 const user = allUsers.find(u => u.id === storedUserId);
                 setCurrentUser(user || null);
             }
@@ -44,6 +45,7 @@ export function useMockAuth() {
 
   const login = useCallback((user: User) => {
     try {
+      // The user ID from auth is now the document ID, which is the username
       localStorage.setItem(AUTH_USER_KEY, user.id);
       setCurrentUser(user);
     } catch (error) {
@@ -55,6 +57,7 @@ export function useMockAuth() {
   const logout = useCallback(() => {
     try {
       localStorage.removeItem(AUTH_USER_KEY);
+      sessionStorage.removeItem(USERS_CACHE_KEY); // Clear user cache on logout
       setCurrentUser(null);
     } catch (error) {
        console.warn("Could not clear auth state from localStorage", error);
