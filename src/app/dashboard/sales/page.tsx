@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Product, Ticket } from '@/lib/types';
+import type { Product, Ticket, Purchase } from '@/lib/types';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Ticket as TicketIcon } from "lucide-react";
 import { formatCurrency } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
-import { addPurchase, type NewPurchase } from '@/lib/services/purchase-service';
+import { addPurchase, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useMockAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
@@ -45,26 +45,48 @@ export default function SalesPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerPayment, setCustomerPayment] = useState<number>(0);
   const [products, setProducts] = useState<Product[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { role, users, isMounted } = useMockAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    async function loadProducts() {
-      setIsLoading(true);
-      try {
-          const fetchedProducts = await getProducts();
-          setProducts(fetchedProducts);
-      } catch (error) {
-          console.error("Error fetching products:", error);
-          toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
-      } finally {
-          setIsLoading(false);
-      }
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const [fetchedProducts, fetchedPurchases] = await Promise.all([
+            getProducts(),
+            getPurchases(),
+        ]);
+        setProducts(fetchedProducts);
+        setPurchases(fetchedPurchases);
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos de ventas." });
+    } finally {
+        setIsLoading(false);
     }
-    loadProducts();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+  
+  const pendingQuantities = useMemo(() => {
+    const pending: { [productId: string]: number } = {};
+    purchases
+        .filter(p => p.status === 'pending')
+        .flatMap(p => p.items)
+        .forEach(item => {
+            if (item.id in pending) {
+                pending[item.id] += item.quantity;
+            } else {
+                pending[item.id] = item.quantity;
+            }
+        });
+    return pending;
+  }, [purchases]);
+
 
   const availableTickets: Ticket[] = []; // No tickets by default
 
@@ -149,18 +171,7 @@ export default function SalesPage() {
         await addPurchase(newPurchaseData);
         toast({ title: "Venta Exitosa", description: "La compra ha sido registrada." });
         clearCart();
-        
-        // Directly fetch products again after purchase
-        setIsLoading(true);
-        try {
-            const fetchedProducts = await getProducts();
-            setProducts(fetchedProducts);
-        } catch (error) {
-            console.error("Error refetching products:", error);
-        } finally {
-            setIsLoading(false);
-        }
-
+        loadData(); // Reload data after purchase
     } catch (error) {
         console.error("Error creating purchase:", error);
         toast({ variant: "destructive", title: "Error en la Venta", description: (error as Error).message || "No se pudo registrar la venta." });
@@ -172,7 +183,7 @@ export default function SalesPage() {
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const change = customerPayment - subtotal;
   
-  const productsForSale = products.filter(p => p.isPosAvailable && p.stock > 0);
+  const productsForSale = products.filter(p => p.isPosAvailable);
 
   return (
     <div>
@@ -239,7 +250,12 @@ export default function SalesPage() {
                                                 {product.stock <= 0 ? (
                                                     <Badge variant="destructive">Agotado</Badge>
                                                 ) : (
-                                                    <Badge variant="outline">Stock: {product.stock}</Badge>
+                                                    <div className='flex items-center gap-2'>
+                                                        {pendingQuantities[product.id] > 0 && (
+                                                            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700">Pendientes: {pendingQuantities[product.id]}</Badge>
+                                                        )}
+                                                        <Badge variant="outline">Stock: {product.stock}</Badge>
+                                                    </div>
                                                 )}
                                                 <Button onClick={() => addToCart(product, 'product')} disabled={product.stock <= 0}>
                                                     Agregar
