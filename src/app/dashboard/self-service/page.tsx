@@ -205,7 +205,7 @@ export default function SelfServicePage() {
           {isLoading ? (
             <p>Cargando productos...</p>
           ) : products.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((product) => {
                 const isSoldOut = product.stock <= 0;
                 return (
@@ -246,7 +246,7 @@ export default function SelfServicePage() {
         </div>
 
         <div>
-          <Card className="bg-primary text-primary-foreground sticky top-20">
+          <Card className="bg-primary text-primary-foreground lg:sticky top-20">
             <CardHeader>
               <CardTitle>Carrito de Compras</CardTitle>
             </CardHeader>

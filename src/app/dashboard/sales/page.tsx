@@ -372,7 +372,7 @@ export default function SalesPage() {
 
         {/* Cart and Checkout */}
         <div>
-          <Card className="bg-blue-950 text-white sticky top-20">
+          <Card className="bg-blue-950 text-white lg:sticky top-20">
             <CardHeader>
               <CardTitle>Carrito de Compras</CardTitle>
             </CardHeader>

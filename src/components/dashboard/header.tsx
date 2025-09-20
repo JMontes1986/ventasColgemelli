@@ -17,11 +17,15 @@ import Link from "next/link";
 import { Logo } from "../icons";
 import { useRouter } from "next/navigation";
 import { TopNav } from "./top-nav";
-
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, Package2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 export function Header({ navItems }: { navItems: NavItem[] }) {
   const { currentUser, isMounted, logout } = useMockAuth();
   const router = useRouter();
+  const pathname = usePathname();
   
   if (!isMounted) {
     return (
@@ -37,16 +41,53 @@ export function Header({ navItems }: { navItems: NavItem[] }) {
   }
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+        <div className="md:hidden">
+            <Sheet>
+                <SheetTrigger asChild>
+                    <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 md:hidden"
+                    >
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Toggle navigation menu</span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="flex flex-col">
+                    <nav className="grid gap-6 text-lg font-medium">
+                        <Link
+                            href="/dashboard"
+                            className="flex items-center gap-2 text-lg font-semibold"
+                        >
+                            <Logo className="h-6 w-6" />
+                            <span className="sr-only">ColGemelli</span>
+                        </Link>
+                        {navItems.map((item) => (
+                           <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                                "transition-colors hover:text-foreground",
+                                pathname === item.href ? "text-foreground" : "text-muted-foreground"
+                            )}
+                            >
+                            {item.label}
+                           </Link>
+                        ))}
+                    </nav>
+                </SheetContent>
+            </Sheet>
+        </div>
+        <Link href="/dashboard" className="hidden items-center gap-2 font-semibold md:flex">
           <Logo className="h-6 w-6" />
           <span className="">ColGemelli</span>
         </Link>
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-4">
-        <TopNav navItems={navItems} />
+        <TopNav navItems={navItems} className="hidden md:flex" />
         {currentUser && (
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
