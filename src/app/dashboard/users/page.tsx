@@ -68,17 +68,18 @@ function UserForm({
     const [name, setName] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [permissions, setPermissions] = useState<ModulePermission[]>([]);
+    const [permissions, setPermissions] = useState<ModulePermission[]>(initialData?.permissions || []);
     const [isOpen, setIsOpen] = useState(false);
 
-    useEffect(() => {
+     useEffect(() => {
         if (isOpen) {
             if (mode === 'edit' && initialData) {
                 setName(initialData.name);
                 setUsername(initialData.username);
-                setPassword('');
+                setPassword(''); // Always clear password for edit
                 setPermissions(initialData.permissions || []);
             } else {
+                // Reset for create mode
                 setName('');
                 setUsername('');
                 setPassword('');
