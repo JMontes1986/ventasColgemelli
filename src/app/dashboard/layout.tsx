@@ -2,8 +2,6 @@
 "use client";
 
 import { Header } from "@/components/dashboard/header";
-import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 import type { ModulePermission } from "@/lib/types";
 import { navItems, adminNavItems } from "@/components/dashboard/sidebar-nav";
@@ -41,16 +39,9 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen">
-        <Sidebar>
-          <SidebarNav navItems={accessibleNavItems} />
-        </Sidebar>
-        <SidebarInset>
-          <Header navItems={accessibleNavItems} />
-          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+    <div className="flex min-h-screen flex-col">
+      <Header navItems={accessibleNavItems} />
+      <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+    </div>
   );
 }

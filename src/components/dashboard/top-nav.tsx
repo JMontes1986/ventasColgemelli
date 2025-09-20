@@ -25,7 +25,7 @@ export function TopNav({
 
   return (
     <nav
-      className={cn("hidden items-center space-x-4 lg:space-x-6 md:flex", className)}
+      className={cn("flex items-center space-x-4 lg:space-x-6", className)}
       {...props}
     >
       {accessibleNavItems.map((item) => (

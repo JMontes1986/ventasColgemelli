@@ -16,7 +16,8 @@ import type { NavItem } from "./sidebar-nav";
 import Link from "next/link";
 import { Logo } from "../icons";
 import { useRouter } from "next/navigation";
-import { SidebarTrigger } from "../ui/sidebar";
+import { TopNav } from "./top-nav";
+
 
 export function Header({ navItems }: { navItems: NavItem[] }) {
   const { currentUser, isMounted, logout } = useMockAuth();
@@ -38,14 +39,14 @@ export function Header({ navItems }: { navItems: NavItem[] }) {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-4">
-        <SidebarTrigger className="md:hidden" />
-        <Link href="/dashboard" className="hidden md:flex items-center gap-2 font-semibold">
+        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
           <Logo className="h-6 w-6" />
           <span className="">ColGemelli</span>
         </Link>
       </div>
-      
-      <div className="flex items-center gap-4">
+
+      <div className="flex flex-1 items-center justify-end gap-4">
+        <TopNav navItems={navItems} />
         {currentUser && (
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
