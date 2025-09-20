@@ -58,7 +58,7 @@ export default function AuditPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
 
   useEffect(() => {
