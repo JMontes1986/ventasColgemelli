@@ -215,16 +215,16 @@ export default function SelfServicePage() {
                 return (
                   <Card key={product.id} className={cn("overflow-hidden group", isSoldOut && "opacity-50")}>
                     <div className={cn("aspect-square relative", !isSoldOut && "cursor-pointer")} onClick={() => !isSoldOut && !hasReachedLimit && addToCart(product)}>
-                      {quantityInCart > 0 && !hasReachedLimit && (
-                        <div className="absolute top-2 right-2 z-10 bg-accent text-accent-foreground h-8 w-8 rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
-                          {quantityInCart}
-                        </div>
-                      )}
-                      {hasReachedLimit && !isSoldOut && (
-                        <div className="absolute top-2 right-2 z-10">
-                            <Badge variant="destructive" className="text-sm">Límite alcanzado</Badge>
-                        </div>
-                      )}
+                      <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+                          {quantityInCart > 0 && (
+                            <div className="bg-accent text-accent-foreground h-8 w-8 rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
+                              {quantityInCart}
+                            </div>
+                          )}
+                          {hasReachedLimit && !isSoldOut && (
+                              <Badge variant="destructive" className="text-xs animate-pulse">Límite alcanzado</Badge>
+                          )}
+                      </div>
                       <Image
                         src={product.imageUrl}
                         alt={product.name}
