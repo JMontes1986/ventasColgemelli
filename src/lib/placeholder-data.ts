@@ -9,6 +9,7 @@ const readonlyPermissions: ModulePermission[] = ['dashboard'];
 
 
 export const mockUsers: Omit<User, 'id'>[] = [
+  { username: 'admin.test', name: 'Admin Prueba', password: 'password', permissions: allPermissions, avatarUrl: `https://picsum.photos/seed/admintest/100/100` },
   { username: 'julian.montes', name: 'Julian Montes', password: 'password', permissions: allPermissions, avatarUrl: `https://picsum.photos/seed/julian.montes/100/100` },
   { username: 'admin', name: 'Administrador', password: 'password', permissions: allPermissions, avatarUrl: `https://picsum.photos/seed/admin/100/100` },
   { username: 'carlos.ruiz', name: 'Carlos Ruiz', password: 'password', permissions: cashierPermissions, avatarUrl: `https://picsum.photos/seed/carlos.ruiz/100/100` },
