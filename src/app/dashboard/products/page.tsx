@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store, Plus } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store, Plus, PackagePlus } from "lucide-react";
 import { PermissionGate } from "@/components/permission-gate";
 import Image from "next/image";
 import { mockProducts } from "@/lib/placeholder-data";
@@ -248,7 +248,11 @@ function RestockForm({ product, onStockUpdated }: { product: Product; onStockUpd
 
         try {
             await increaseProductStock(product.id, quantity, currentUser);
-            const updatedProduct = { ...product, stock: product.stock + quantity };
+            const updatedProduct = { 
+                ...product, 
+                stock: product.stock + quantity,
+                restockCount: (product.restockCount || 0) + 1,
+            };
             onStockUpdated(updatedProduct);
             toast({ title: "Éxito", description: `Se añadieron ${quantity} unidades al stock de ${product.name}.` });
             setIsOpen(false);
@@ -442,6 +446,12 @@ export default function ProductsPage() {
                         <span className="text-sm font-medium text-muted-foreground">
                         Stock: {product.stock}
                         </span>
+                    </div>
+                     <div className="flex justify-start items-center mt-2">
+                         <Badge variant="outline" className="flex items-center gap-1">
+                            <PackagePlus className="h-3 w-3" />
+                            <span>Reintegros: {product.restockCount || 0}</span>
+                        </Badge>
                     </div>
                 </CardContent>
             </Card>

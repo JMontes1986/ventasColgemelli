@@ -89,7 +89,8 @@ export type Product = {
     imageUrl: string;
     imageHint: string;
     isSelfService: boolean;
-    isPosAvailable: boolean; // New field for Point of Sale availability
+    isPosAvailable: boolean;
+    restockCount?: number;
 };
 
 // Represents an item in the shopping cart, stored within a Purchase

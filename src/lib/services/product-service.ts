@@ -32,8 +32,8 @@ export async function getSelfServiceProducts(): Promise<Product[]> {
 // Function to add a new product to Firestore
 export async function addProduct(product: NewProduct): Promise<Product> {
   const productsCol = collection(db, 'products');
-  const docRef = await addDoc(productsCol, product);
-  return { id: docRef.id, ...product };
+  const docRef = await addDoc(productsCol, { ...product, restockCount: 0 });
+  return { id: docRef.id, ...product, restockCount: 0 };
 }
 
 // Function to add a product with a specific ID (for seeding)
@@ -47,6 +47,7 @@ export async function addProductWithId(product: Product): Promise<void> {
         imageHint: product.imageHint,
         isSelfService: product.isSelfService ?? false,
         isPosAvailable: product.isPosAvailable ?? true,
+        restockCount: product.restockCount || 0,
     });
 }
 
@@ -60,7 +61,11 @@ export async function updateProduct(productId: string, product: UpdatableProduct
 export async function increaseProductStock(productId: string, quantity: number, user?: User): Promise<void> {
     const productRef = doc(db, 'products', productId);
     
-    // If a user is provided, it's a manual restock, so we log it.
+    const updates: { [key: string]: any } = {
+        stock: increment(quantity)
+    };
+    
+    // If a user is provided, it's a manual restock, so we log it and increment the counter.
     if (user) {
          const productDoc = await getDoc(productRef);
          if (productDoc.exists()) {
@@ -71,12 +76,11 @@ export async function increaseProductStock(productId: string, quantity: number, 
                 action: 'STOCK_RESTOCK',
                 details: `Reintegro de stock para '${productName}'. Cantidad: +${quantity}.`,
             });
+            updates.restockCount = increment(1);
          }
     }
     
-    await updateDoc(productRef, {
-        stock: increment(quantity)
-    });
+    await updateDoc(productRef, updates);
 }
 
     
