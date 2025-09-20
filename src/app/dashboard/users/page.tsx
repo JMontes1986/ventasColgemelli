@@ -145,7 +145,6 @@ function UserForm({
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasSeeded, setHasSeeded] = useState(false);
   const { toast } = useToast();
   const { currentUser } = useMockAuth();
 
@@ -153,15 +152,13 @@ export default function UsersPage() {
     async function loadUsers() {
       setIsLoading(true);
       try {
-        const fetchedUsers = await getUsers();
-        if (fetchedUsers.length === 0 && !hasSeeded) {
+        let fetchedUsers = await getUsers();
+        if (fetchedUsers.length === 0) {
+          // If no users, seed them and refetch
           await addSeedUsers();
-          const freshUsers = await getUsers();
-          setUsers(freshUsers);
-          setHasSeeded(true);
-        } else {
-          setUsers(fetchedUsers);
+          fetchedUsers = await getUsers();
         }
+        setUsers(fetchedUsers);
       } catch (error) {
         console.error("Error fetching users:", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los usuarios." });
@@ -170,7 +167,7 @@ export default function UsersPage() {
       }
     }
     loadUsers();
-  }, [toast, hasSeeded]);
+  }, [toast]);
 
   const handleUserAdded = (newUser: User) => {
     setUsers(prevUsers => [...prevUsers, newUser]);
