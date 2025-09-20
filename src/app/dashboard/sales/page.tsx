@@ -66,7 +66,7 @@ export default function SalesPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     loadData();
