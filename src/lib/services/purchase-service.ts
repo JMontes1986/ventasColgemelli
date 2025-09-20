@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment } from "firebase/firestore";
-import type { Purchase, NewPurchase, Product, PurchaseStatus } from "@/lib/types";
+import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 
@@ -124,7 +124,7 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       // Create the new purchase document
       const purchaseRef = doc(db, 'purchases', generatedId);
       // Ensure all items have the 'returned' flag set to false initially
-      const itemsToSave = purchase.items.map(({ type, ...item}) => ({...item, returned: false }));
+      const itemsToSave = purchase.items.map(({ type, stock, ...item}) => ({...item, returned: false }));
       
       // If purchase comes from POS (sellerId is present), status is 'paid'. Otherwise, 'pending'.
       const status: PurchaseStatus = purchase.sellerId ? 'paid' : 'pending';
@@ -171,3 +171,80 @@ export async function cancelPurchaseAndUpdateStock(purchaseId: string): Promise<
     transaction.update(purchaseRef, { status: "cancelled" });
   });
 }
+
+
+export async function updatePendingPurchase(purchaseId: string, newCart: Omit<CartItem, 'type' | 'stock'>[]): Promise<void> {
+  await runTransaction(db, async (transaction) => {
+    // --- 1. READ PHASE ---
+    const purchaseRef = doc(db, "purchases", purchaseId);
+    const purchaseDoc = await transaction.get(purchaseRef);
+
+    if (!purchaseDoc.exists() || purchaseDoc.data().status !== 'pending') {
+      throw new Error("Compra no encontrada o ya ha sido procesada.");
+    }
+
+    const originalPurchase = purchaseDoc.data() as Purchase;
+    const originalItems = originalPurchase.items;
+
+    // --- 2. CALCULATION & VALIDATION PHASE ---
+    
+    // Create maps for easy lookup
+    const originalItemMap = new Map(originalItems.map(item => [item.id, item.quantity]));
+    const newItemMap = new Map(newCart.map(item => [item.id, item.quantity]));
+    
+    // Calculate stock changes
+    const stockChanges = new Map<string, number>();
+
+    // Items removed or quantity decreased
+    originalItemMap.forEach((origQty, id) => {
+        const newQty = newItemMap.get(id) || 0;
+        const diff = origQty - newQty;
+        if (diff > 0) {
+            stockChanges.set(id, (stockChanges.get(id) || 0) + diff); // Return stock
+        }
+    });
+
+    // Items added or quantity increased
+    newItemMap.forEach((newQty, id) => {
+        const origQty = originalItemMap.get(id) || 0;
+        const diff = newQty - origQty;
+        if (diff > 0) {
+            stockChanges.set(id, (stockChanges.get(id) || 0) - diff); // Reserve stock
+        }
+    });
+
+    // Validate new stock levels
+    for (const [productId, change] of stockChanges.entries()) {
+      if (change < 0) { // Only need to check for stock reservation
+        const productRef = doc(db, "products", productId);
+        const productDoc = await transaction.get(productRef);
+        if (!productDoc.exists()) throw new Error(`Producto ${productId} no encontrado.`);
+        
+        const currentStock = productDoc.data().stock;
+        if (currentStock + change < 0) {
+          throw new Error(`Stock insuficiente para ${productDoc.data().name}.`);
+        }
+      }
+    }
+
+    // --- 3. WRITE PHASE ---
+
+    // Apply stock changes
+    for (const [productId, change] of stockChanges.entries()) {
+      const productRef = doc(db, "products", productId);
+      transaction.update(productRef, { stock: increment(change) });
+    }
+
+    // Update the purchase document
+    const newTotal = newCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const itemsToSave = newCart.map(({...item}) => ({...item, returned: false }));
+    
+    transaction.update(purchaseRef, {
+      items: itemsToSave,
+      total: newTotal,
+      date: new Date().toLocaleString('es-CO'), // Update date to reflect modification time
+    });
+  });
+}
+
+    

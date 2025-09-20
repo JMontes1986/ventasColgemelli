@@ -22,7 +22,7 @@ import {
   TableHead
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, ShoppingCart, History } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, History, Pencil } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import Image from 'next/image';
 import {
@@ -37,9 +37,10 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { getSelfServiceProducts } from '@/lib/services/product-service';
-import { addPurchase, getPurchasesByCedula, type NewPurchase } from '@/lib/services/purchase-service';
+import { addPurchase, getPurchasesByCedula, type NewPurchase, updatePendingPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { addAuditLog } from '@/lib/services/audit-service';
 
 
 type CartItem = {
@@ -65,6 +66,7 @@ export default function SelfServicePage() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
 
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
@@ -130,13 +132,44 @@ export default function SelfServicePage() {
   
   const clearCart = () => {
     setCart([]);
+    setEditingPurchase(null);
   };
 
   const handleInitiatePayment = () => {
     if (cart.length > 0) {
-        setIsUserInfoModalOpen(true);
+        if (editingPurchase) {
+            handleUpdatePurchase();
+        } else {
+            setIsUserInfoModalOpen(true);
+        }
     }
   }
+
+  const handleUpdatePurchase = async () => {
+    if (!editingPurchase || cart.length === 0) return;
+    setIsProcessing(true);
+    
+    try {
+        await updatePendingPurchase(editingPurchase.id, cart);
+        await addAuditLog({
+            userId: editingPurchase.cedula,
+            userName: `Cliente (Autogestión)`,
+            action: 'PURCHASE_EDIT',
+            details: `Cliente modificó la compra pendiente ${editingPurchase.id}.`,
+        });
+
+        setPaymentCode(editingPurchase.id);
+        setIsPaymentModalOpen(true);
+        toast({ title: "Éxito", description: "Su compra ha sido actualizada correctamente." });
+
+    } catch (error) {
+        console.error("Error updating purchase:", error);
+        toast({ variant: "destructive", title: "Error al Actualizar", description: (error as Error).message || "No se pudo actualizar la compra." });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
 
   const handleConfirmPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,7 +223,24 @@ export default function SelfServicePage() {
       setCelular('');
       clearCart();
       loadProducts(); // Refresh products after a successful purchase
+      setPurchaseHistory([]);
+      setSearchCedula('');
   }
+
+  const handleEditPurchase = (purchase: Purchase) => {
+    const cartItems: CartItem[] = purchase.items.map(item => {
+        const product = products.find(p => p.id === item.id);
+        return {
+            ...item,
+            type: 'product',
+            stock: product ? product.stock + item.quantity : item.quantity, // Temporarily add back stock for validation
+        }
+    });
+    setCart(cartItems);
+    setEditingPurchase(purchase);
+    toast({ title: "Modo Edición", description: "Los artículos de su compra han sido cargados en el carrito." });
+  }
+
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
@@ -262,7 +312,8 @@ export default function SelfServicePage() {
         <div>
           <Card className="bg-primary text-primary-foreground lg:sticky top-20">
             <CardHeader>
-              <CardTitle>Carrito de Compras</CardTitle>
+              <CardTitle>{editingPurchase ? 'Modificando Compra' : 'Carrito de Compras'}</CardTitle>
+               {editingPurchase && <CardDescription className="text-primary-foreground/80">Código: {editingPurchase.id}</CardDescription>}
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-60 mb-4">
@@ -308,12 +359,12 @@ export default function SelfServicePage() {
               <Button 
                 className="w-full text-lg h-12 bg-accent hover:bg-accent/90 text-accent-foreground font-bold" 
                 onClick={handleInitiatePayment}
-                disabled={cart.length === 0}
+                disabled={cart.length === 0 || isProcessing}
               >
-                Pagar con DaviPlata
+                {isProcessing ? 'Procesando...' : (editingPurchase ? 'Guardar Cambios' : 'Pagar con DaviPlata')}
               </Button>
               <Button variant="destructive" className="w-full text-lg h-12" onClick={clearCart}>
-                Vaciar
+                {editingPurchase ? 'Cancelar Edición' : 'Vaciar'}
               </Button>
             </CardFooter>
           </Card>
@@ -328,7 +379,7 @@ export default function SelfServicePage() {
               Mi Historial de Compras
             </CardTitle>
             <CardDescription>
-              Ingrese su número de cédula para ver su historial de compras y encontrar sus códigos de pago.
+              Ingrese su número de cédula para ver su historial y modificar compras pendientes.
             </CardDescription>
             <div className="pt-2 flex items-end gap-2">
               <div className="flex-grow">
@@ -354,6 +405,7 @@ export default function SelfServicePage() {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -367,6 +419,14 @@ export default function SelfServicePage() {
                          </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(purchase.total)}</TableCell>
+                       <TableCell className="text-right">
+                        {purchase.status === 'pending' && (
+                            <Button variant="outline" size="sm" onClick={() => handleEditPurchase(purchase)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Modificar
+                            </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -427,7 +487,7 @@ export default function SelfServicePage() {
       <Dialog open={isPaymentModalOpen} onOpenChange={closeModal}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Código de Pago Generado</DialogTitle>
+            <DialogTitle>{editingPurchase ? 'Compra Actualizada' : 'Código de Pago Generado'}</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-md border border-yellow-200 dark:border-yellow-800">

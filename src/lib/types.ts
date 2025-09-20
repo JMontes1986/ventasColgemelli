@@ -68,7 +68,7 @@ export type CashboxSession = {
   totalSales: number;
 };
 
-export type AuditLogAction = 'TICKET_ISSUE' | 'TICKET_SELL' | 'TICKET_REDEEM' | 'TICKET_VOID' | 'CASHBOX_OPEN' | 'CASHBOX_CLOSE' | 'USER_ROLE_CHANGE' | 'PAYMENT_CONFIRM' | 'STOCK_RESTOCK';
+export type AuditLogAction = 'TICKET_ISSUE' | 'TICKET_SELL' | 'TICKET_REDEEM' | 'TICKET_VOID' | 'CASHBOX_OPEN' | 'CASHBOX_CLOSE' | 'USER_ROLE_CHANGE' | 'PAYMENT_CONFIRM' | 'STOCK_RESTOCK' | 'PURCHASE_EDIT';
 
 export type AuditLog = {
   id: string;
@@ -101,6 +101,7 @@ export type CartItem = {
   quantity: number;
   type: 'product' | 'ticket';
   returned?: boolean; // Flag to indicate if the item has been returned
+  stock?: number;
 };
 
 export type PurchaseStatus = 'pending' | 'paid' | 'cancelled' | 'delivered';
@@ -111,7 +112,7 @@ export type Purchase = {
   id: string; // Firestore document ID
   date: string;
   total: number;
-  items: Omit<CartItem, 'type'>[];
+  items: Omit<CartItem, 'type' | 'stock' | 'returned'>[];
   cedula: string;
   celular: string;
   sellerId?: string; // ID of the user who made the sale in POS
