@@ -70,7 +70,6 @@ export default function SelfServicePage() {
     setIsLoading(true);
     try {
         const fetchedProducts = await getSelfServiceProducts();
-        // Filter out products with 0 stock
         setProducts(fetchedProducts.filter(p => p.stock > 0));
     } catch (error) {
         console.error("Error fetching products:", error);
@@ -78,7 +77,7 @@ export default function SelfServicePage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     loadProducts();
