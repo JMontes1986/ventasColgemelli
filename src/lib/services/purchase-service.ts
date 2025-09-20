@@ -1,7 +1,7 @@
 
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product, PurchaseStatus } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
 import { useMockAuth } from "@/hooks/use-mock-auth";
@@ -147,4 +147,27 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
 export async function updatePurchase(purchaseId: string, data: Partial<Purchase>): Promise<void> {
     const purchaseRef = doc(db, 'purchases', purchaseId);
     await updateDoc(purchaseRef, data);
+}
+
+// Function to cancel a purchase and return items to stock
+export async function cancelPurchaseAndUpdateStock(purchaseId: string): Promise<void> {
+  await runTransaction(db, async (transaction) => {
+    const purchaseRef = doc(db, "purchases", purchaseId);
+    const purchaseDoc = await transaction.get(purchaseRef);
+
+    if (!purchaseDoc.exists()) {
+      throw new Error("Purchase not found");
+    }
+
+    const purchaseData = purchaseDoc.data() as Purchase;
+
+    // Return items to stock
+    for (const item of purchaseData.items) {
+      const productRef = doc(db, "products", item.id);
+      transaction.update(productRef, { stock: increment(item.quantity) });
+    }
+
+    // Update purchase status to cancelled
+    transaction.update(purchaseRef, { status: "cancelled" });
+  });
 }

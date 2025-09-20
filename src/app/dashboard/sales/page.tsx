@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Product, Ticket, Purchase } from "@/lib/types";
+import type { Product, Ticket, Purchase, User } from "@/lib/types";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,15 +23,28 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, Ticket as TicketIcon, Hourglass, Search } from "lucide-react";
+import { Trash2, Plus, Minus, Ticket as TicketIcon, Hourglass, Search, XCircle } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
-import { addPurchase, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
+import { addPurchase, getPurchases, type NewPurchase, cancelPurchaseAndUpdateStock } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useMockAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { addAuditLog } from '@/lib/services/audit-service';
+
 
 type CartItem = {
   id: string;
@@ -181,6 +194,25 @@ export default function SalesPage() {
     }
   }
 
+  const handleCancelPurchase = async (purchaseId: string) => {
+    if (!currentUser) return;
+    try {
+        await cancelPurchaseAndUpdateStock(purchaseId);
+        await addAuditLog({
+            userId: currentUser.id,
+            userName: currentUser.name,
+            action: 'TICKET_VOID', // Reusing this for cancellation
+            details: `Compra pendiente ${purchaseId} cancelada. Stock devuelto.`,
+        });
+        toast({ title: "Compra Cancelada", description: "La compra ha sido cancelada y el stock devuelto." });
+        loadData();
+    } catch (error) {
+        console.error("Error canceling purchase:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo cancelar la compra." });
+    }
+  };
+
+
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const change = customerPayment - subtotal;
 
@@ -289,7 +321,30 @@ export default function SalesPage() {
                                             <TableCell className="text-right font-medium">
                                                 {formatCurrency(purchase.total)}
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right space-x-2">
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="destructive" size="sm">
+                                                            <XCircle className="mr-2 h-4 w-4" />
+                                                            Cancelar
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                        <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Esta acción cancelará la compra con código <span className="font-mono font-bold">{purchase.id}</span>. Los productos reservados serán devueltos al stock. Esta acción no se puede deshacer.
+                                                        </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cerrar</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleCancelPurchase(purchase.id)}>
+                                                            Confirmar Cancelación
+                                                        </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+
                                                 <Button asChild variant="outline" size="sm">
                                                     <Link href={`/dashboard/redeem?code=${purchase.id}`}>
                                                         <Search className="mr-2 h-4 w-4" />
