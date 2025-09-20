@@ -65,28 +65,28 @@ function UserForm({
     onUserUpdated: (user: User) => void;
 }) {
     const { toast } = useToast();
-    const [name, setName] = useState('');
-    const [username, setUsername] = useState('');
+    const [name, setName] = useState(initialData?.name || '');
+    const [username, setUsername] = useState(initialData?.username || '');
     const [password, setPassword] = useState('');
     const [permissions, setPermissions] = useState<ModulePermission[]>(initialData?.permissions || []);
     const [isOpen, setIsOpen] = useState(false);
 
-     useEffect(() => {
-        if (isOpen) {
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (open) {
             if (mode === 'edit' && initialData) {
                 setName(initialData.name);
                 setUsername(initialData.username);
-                setPassword(''); // Always clear password for edit
+                setPassword('');
                 setPermissions(initialData.permissions || []);
             } else {
-                // Reset for create mode
                 setName('');
                 setUsername('');
                 setPassword('');
                 setPermissions([]);
             }
         }
-    }, [isOpen, mode, initialData]);
+    };
 
     const handlePermissionChange = (permission: ModulePermission, checked: boolean) => {
         setPermissions(prev =>
@@ -142,7 +142,7 @@ function UserForm({
     );
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>{trigger}</DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
@@ -296,7 +296,9 @@ export default function UsersPage() {
                         </div>
                     </TableCell>
                     <TableCell className="text-right">
-                        <UserForm mode="edit" initialData={user} onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
+                        <PermissionGate requiredPermission="users">
+                            <UserForm mode="edit" initialData={user} onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
+                        </PermissionGate>
                     </TableCell>
                     </TableRow>
                 ))}
