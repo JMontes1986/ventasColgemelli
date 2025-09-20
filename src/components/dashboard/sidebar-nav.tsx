@@ -51,17 +51,18 @@ export const adminNavItems: NavItem[] = [
     { href: "/dashboard/audit", icon: ClipboardList, label: "Auditoría", permission: 'audit' },
 ]
 
+const allNavItems = [...navItems, ...adminNavItems];
+
+
 export function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout, hasPermission } = useMockAuth();
+  const { logout } = useMockAuth();
 
   const handleLogout = () => {
     logout();
     router.push('/');
   }
-
-  const hasAdminItems = adminNavItems.some(item => hasPermission(item.permission));
 
   return (
     <>
@@ -91,10 +92,8 @@ export function SidebarNav() {
               </SidebarMenuItem>
             </PermissionGate>
           ))}
-        </SidebarMenu>
-        {hasAdminItems && <SidebarSeparator />}
-        <SidebarMenu>
-        {adminNavItems.map((item) => (
+          <SidebarSeparator />
+          {adminNavItems.map((item) => (
             <PermissionGate key={item.href} requiredPermission={item.permission}>
                 <SidebarMenuItem>
                     <SidebarMenuButton
