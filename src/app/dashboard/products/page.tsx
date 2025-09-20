@@ -35,7 +35,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { getProducts, addProduct, addProductWithId, type NewProduct, updateProduct, increaseProductStock } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -375,7 +375,13 @@ export default function ProductsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {products.map((product) => (
-            <Card key={product.id} className="overflow-hidden relative group">
+            <Card 
+                key={product.id} 
+                className={cn(
+                    "overflow-hidden relative group",
+                    product.stock <= 0 && "bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-800"
+                )}
+            >
                 <PermissionGate requiredPermission="products">
                     <div className="absolute top-2 right-2 z-10">
                         <DropdownMenu>
@@ -445,5 +451,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-
-    
