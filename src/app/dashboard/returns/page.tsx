@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Undo2, CheckCircle, PackageSearch } from "lucide-react";
 import { getProducts, increaseProductStock } from '@/lib/services/product-service';
-import type { Product, Return } from '@/lib/types';
+import type { Product, Return, ReturnSource } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   Select,
@@ -28,12 +28,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function ReturnsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [returnsHistory, setReturnsHistory] = useState<Return[]>([]);
     const [selectedProductId, setSelectedProductId] = useState<string>('');
     const [quantity, setQuantity] = useState(1);
+    const [source, setSource] = useState<ReturnSource | ''>('');
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [lastReturn, setLastReturn] = useState<{ name: string; quantity: number } | null>(null);
@@ -72,8 +74,8 @@ export default function ReturnsPage() {
             return;
         }
         
-        if (!selectedProductId) {
-            toast({ variant: 'destructive', title: 'Campo Requerido', description: 'Por favor seleccione un producto.' });
+        if (!selectedProductId || !source) {
+            toast({ variant: 'destructive', title: 'Campos Requeridos', description: 'Por favor seleccione un producto y el origen de la venta.' });
             return;
         }
 
@@ -105,6 +107,7 @@ export default function ReturnsPage() {
                 returnedAt: new Date().toLocaleString('es-CO'),
                 processedByUserId: currentUser.id,
                 processedByUserName: currentUser.name,
+                source: source,
             });
             
             // Update local state for products
@@ -129,6 +132,7 @@ export default function ReturnsPage() {
             // Reset form
             setSelectedProductId('');
             setQuantity(1);
+            setSource('');
 
         } catch (error) {
             console.error("Error processing return:", error);
@@ -143,6 +147,7 @@ export default function ReturnsPage() {
     };
     
     const selectedProduct = products.find(p => p.id === selectedProductId);
+    const canSubmit = !isProcessing && selectedProductId && source;
 
     return (
         <div>
@@ -156,7 +161,7 @@ export default function ReturnsPage() {
                         <CardHeader>
                             <CardTitle>Procesar Devolución de Producto</CardTitle>
                             <CardDescription>
-                                Elija el producto y la cantidad para agregarlo de nuevo al stock.
+                                Elija el producto, la cantidad y el origen para agregarlo de nuevo al stock.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -183,6 +188,24 @@ export default function ReturnsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <div className="space-y-2">
+                                <Label>Origen de la Venta</Label>
+                                <RadioGroup 
+                                    value={source} 
+                                    onValueChange={(value) => setSource(value as ReturnSource)}
+                                    className="flex space-x-4"
+                                    disabled={isProcessing}
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="Punto de Venta" id="pos" />
+                                        <Label htmlFor="pos">Punto de Venta</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="Autogestión" id="self-service" />
+                                        <Label htmlFor="self-service">Autogestión</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
                              <div className="space-y-2">
                                 <Label htmlFor="quantity">Cantidad a Devolver</Label>
                                 <Input 
@@ -202,7 +225,7 @@ export default function ReturnsPage() {
                             )}
                         </CardContent>
                         <CardFooter>
-                            <Button className="w-full" type="submit" disabled={isProcessing || !selectedProductId}>
+                            <Button className="w-full" type="submit" disabled={!canSubmit}>
                                 <Undo2 className="mr-2 h-4 w-4" />
                                 {isProcessing ? 'Procesando...' : 'Confirmar Devolución'}
                             </Button>
@@ -252,6 +275,7 @@ export default function ReturnsPage() {
                                 <TableRow>
                                     <TableHead>Fecha</TableHead>
                                     <TableHead>Producto</TableHead>
+                                    <TableHead>Origen</TableHead>
                                     <TableHead>Cantidad</TableHead>
                                     <TableHead>Procesado por</TableHead>
                                 </TableRow>
@@ -259,13 +283,13 @@ export default function ReturnsPage() {
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        <TableCell colSpan={5} className="h-24 text-center">
                                             Cargando historial...
                                         </TableCell>
                                     </TableRow>
                                 ) : returnsHistory.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        <TableCell colSpan={5} className="h-24 text-center">
                                             No hay devoluciones registradas.
                                         </TableCell>
                                     </TableRow>
@@ -274,6 +298,7 @@ export default function ReturnsPage() {
                                     <TableRow key={item.id}>
                                         <TableCell>{item.returnedAt}</TableCell>
                                         <TableCell className="font-medium">{item.productName}</TableCell>
+                                        <TableCell>{item.source}</TableCell>
                                         <TableCell>+{item.quantity}</TableCell>
                                         <TableCell>{item.processedByUserName}</TableCell>
                                     </TableRow>
