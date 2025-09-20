@@ -78,7 +78,7 @@ export default function SelfServicePage() {
     } finally {
         setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadProducts();
@@ -440,7 +440,6 @@ export default function SelfServicePage() {
                 </div>
             </div>
 
-            <p className="text-xs text-muted-foreground text-center">Este código es válido por 30 minutos.</p>
           </div>
           <Button onClick={closeModal} className="w-full">Entendido</Button>
         </DialogContent>
