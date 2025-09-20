@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import {
   Card,
@@ -47,21 +47,23 @@ export default function AuditPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function loadLogs() {
-      setIsLoading(true);
-      try {
-        const fetchedLogs = await getAuditLogs();
-        setAuditLogs(fetchedLogs);
-      } catch (error) {
-        console.error("Error fetching audit logs:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los registros de auditoría." });
-      } finally {
-        setIsLoading(false);
-      }
+  const loadLogs = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const fetchedLogs = await getAuditLogs();
+      setAuditLogs(fetchedLogs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los registros de auditoría." });
+    } finally {
+      setIsLoading(false);
     }
-    loadLogs();
   }, [toast]);
+
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
 
   return (
     <div>
