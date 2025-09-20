@@ -210,13 +210,19 @@ export default function SelfServicePage() {
                 const isSoldOut = product.stock <= 0;
                 const cartItem = cart.find(item => item.id === product.id);
                 const quantityInCart = cartItem ? cartItem.quantity : 0;
+                const hasReachedLimit = quantityInCart >= product.stock;
 
                 return (
                   <Card key={product.id} className={cn("overflow-hidden group", isSoldOut && "opacity-50")}>
-                    <div className={cn("aspect-square relative", !isSoldOut && "cursor-pointer")} onClick={() => !isSoldOut && addToCart(product)}>
-                      {quantityInCart > 0 && (
+                    <div className={cn("aspect-square relative", !isSoldOut && "cursor-pointer")} onClick={() => !isSoldOut && !hasReachedLimit && addToCart(product)}>
+                      {quantityInCart > 0 && !hasReachedLimit && (
                         <div className="absolute top-2 right-2 z-10 bg-accent text-accent-foreground h-8 w-8 rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
                           {quantityInCart}
+                        </div>
+                      )}
+                      {hasReachedLimit && !isSoldOut && (
+                        <div className="absolute top-2 right-2 z-10">
+                            <Badge variant="destructive" className="text-sm">Límite alcanzado</Badge>
                         </div>
                       )}
                       <Image
@@ -238,7 +244,7 @@ export default function SelfServicePage() {
                       <h3 className="text-lg font-semibold">{product.name}</h3>
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
-                        <Button size="sm" onClick={() => addToCart(product)} disabled={isSoldOut}>
+                        <Button size="sm" onClick={() => addToCart(product)} disabled={isSoldOut || hasReachedLimit}>
                           <ShoppingCart className="mr-2 h-4 w-4" />
                           Agregar
                         </Button>
