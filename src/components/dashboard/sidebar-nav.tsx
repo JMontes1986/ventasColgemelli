@@ -61,6 +61,8 @@ export function SidebarNav() {
     router.push('/');
   }
 
+  const hasAdminItems = adminNavItems.some(item => useMockAuth().hasPermission(item.permission));
+
   return (
     <>
       <SidebarHeader>
@@ -90,11 +92,11 @@ export function SidebarNav() {
             </PermissionGate>
           ))}
         </SidebarMenu>
-        <PermissionGate requiredPermission="users">
-            <SidebarSeparator />
-            <SidebarMenu>
-            {adminNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
+        {hasAdminItems && <SidebarSeparator />}
+        <SidebarMenu>
+        {adminNavItems.map((item) => (
+            <PermissionGate key={item.href} requiredPermission={item.permission}>
+                <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
                       isActive={pathname === item.href}
@@ -106,9 +108,9 @@ export function SidebarNav() {
                       </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-            ))}
-            </SidebarMenu>
-        </PermissionGate>
+            </PermissionGate>
+        ))}
+        </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
