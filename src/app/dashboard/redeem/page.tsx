@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,18 +30,21 @@ const statusColors: Record<Purchase['status'], string> = {
     cancelled: 'bg-red-500/20 text-red-700',
 };
 
-export default function RedeemPage() {
+function RedeemPageComponent() {
+    const searchParams = useSearchParams();
+    const codeFromUrl = searchParams.get('code');
+
     const [searchCedula, setSearchCedula] = useState('');
     const [searchCelular, setSearchCelular] = useState('');
-    const [searchCode, setSearchCode] = useState('');
+    const [searchCode, setSearchCode] = useState(codeFromUrl || '');
     const [searchResults, setSearchResults] = useState<Purchase[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [searchPerformed, setSearchPerformed] = useState(false);
     const { toast } = useToast();
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
+     const handleSearch = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         
         if (!searchCode && !searchCedula && !searchCelular) {
             toast({
@@ -79,6 +83,13 @@ export default function RedeemPage() {
             setIsLoading(false);
         }
     }
+
+    useEffect(() => {
+        if (codeFromUrl) {
+            handleSearch();
+        }
+    }, [codeFromUrl]);
+
 
     const handleUpdateStatus = async (purchaseId: string, newStatus: Purchase['status']) => {
         setIsUpdating(true);
@@ -245,4 +256,13 @@ export default function RedeemPage() {
             </div>
         </div>
     );
+}
+
+// Wrap the component in Suspense to handle the use of useSearchParams
+export default function RedeemPage() {
+    return (
+        <React.Suspense fallback={<div>Cargando...</div>}>
+            <RedeemPageComponent />
+        </React.Suspense>
+    )
 }

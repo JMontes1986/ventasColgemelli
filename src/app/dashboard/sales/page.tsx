@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Product, Ticket, Purchase } from '@/lib/types';
+import type { Product, Ticket, Purchase } from "@/lib/types";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, Ticket as TicketIcon } from "lucide-react";
+import { Trash2, Plus, Minus, Ticket as TicketIcon, Hourglass } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
 import { addPurchase, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMockAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type CartItem = {
   id: string;
@@ -89,6 +90,7 @@ export default function SalesPage() {
 
 
   const availableTickets: Ticket[] = []; // No tickets by default
+  const pendingSelfServicePurchases = purchases.filter(p => p.status === 'pending' && !p.sellerId);
 
   const addToCart = (item: Product | Ticket, type: 'product' | 'ticket') => {
     setCart((prevCart) => {
@@ -96,11 +98,13 @@ export default function SalesPage() {
       
       if (type === 'product') {
         const product = item as Product;
-        if (product.stock <= 0) {
-            toast({ variant: "destructive", title: "Sin Stock", description: `${product.name} está agotado.` });
+        const availableStock = product.stock - (pendingQuantities[product.id] || 0);
+
+        if (availableStock <= 0) {
+            toast({ variant: "destructive", title: "Sin Stock", description: `${product.name} está agotado o reservado.` });
             return prevCart;
         }
-         if (existingItem && existingItem.quantity >= product.stock) {
+         if (existingItem && existingItem.quantity >= availableStock) {
             toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${product.name}.` });
             return prevCart;
         }
@@ -126,11 +130,14 @@ export default function SalesPage() {
       }
 
       const itemToUpdate = prevCart.find(item => item.id === id);
-      if (itemToUpdate?.type === 'product' && itemToUpdate.stock !== undefined && newQuantity > itemToUpdate.stock) {
-        toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${itemToUpdate.stock} unidades de ${itemToUpdate.name}.` });
-        return prevCart.map((item) =>
-          item.id === id ? { ...item, quantity: itemToUpdate.stock } : item
-        );
+      const productInDb = products.find(p => p.id === id);
+
+      if (itemToUpdate?.type === 'product' && productInDb) {
+        const availableStock = productInDb.stock - (pendingQuantities[productInDb.id] || 0);
+        if (newQuantity > availableStock) {
+            toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${availableStock} unidades disponibles de ${itemToUpdate.name}.` });
+            return prevCart;
+        }
       }
 
       return prevCart.map((item) =>
@@ -197,32 +204,10 @@ export default function SalesPage() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Productos y Autogestión</CardTitle>
+                    <CardTitle>Productos Disponibles</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-[60vh]">
-                         <h3 className="text-lg font-semibold mb-2">Autogestión</h3>
-                         <div className="flex flex-col gap-2 mb-4">
-                            {availableTickets.length === 0 ? (
-                                <p className="text-muted-foreground p-3">No hay boletos disponibles.</p>
-                            ) : (
-                                availableTickets.map((ticket) => (
-                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <TicketIcon className="h-6 w-6 text-primary" />
-                                            <div>
-                                                <p className="font-semibold">{ticket.uniqueCode}</p>
-                                                <p className="text-sm text-muted-foreground">{formatCurrency(ticket.price)}</p>
-                                            </div>
-                                        </div>
-                                        <Button onClick={() => addToCart(ticket, 'ticket')}>
-                                            Agregar al carrito
-                                        </Button>
-                                    </div>
-                                ))
-                            )}
-                         </div>
-                         <h3 className="text-lg font-semibold mb-2">Productos</h3>
                          {isLoading ? (
                             <p className="text-muted-foreground p-3">Cargando productos...</p>
                          ) : (
@@ -231,7 +216,8 @@ export default function SalesPage() {
                                     <p className="text-muted-foreground p-3">No hay productos disponibles para la venta.</p>
                                 ) : (
                                     productsForSale.map((product) => {
-                                      const isSoldOut = product.stock <= 0;
+                                      const availableStock = product.stock - (pendingQuantities[product.id] || 0);
+                                      const isSoldOut = availableStock <= 0;
                                       return (
                                         <div key={product.id} className={cn("flex items-center justify-between p-3 bg-muted/50 rounded-lg", isSoldOut && "opacity-50")}>
                                             <div className="flex items-center gap-3">
@@ -256,7 +242,7 @@ export default function SalesPage() {
                                                         {pendingQuantities[product.id] > 0 && (
                                                             <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700">Pendientes: {pendingQuantities[product.id]}</Badge>
                                                         )}
-                                                        <Badge variant="outline">Stock: {product.stock}</Badge>
+                                                        <Badge variant="outline">Stock: {availableStock}</Badge>
                                                     </div>
                                                 )}
                                                 <Button onClick={() => addToCart(product, 'product')} disabled={isSoldOut}>
@@ -268,6 +254,58 @@ export default function SalesPage() {
                                     })
                                 )}
                             </div>
+                         )}
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Hourglass />
+                        Compras de Autogestión Pendientes
+                    </CardTitle>
+                    <CardDescription>
+                        Estas compras fueron iniciadas en el portal y están pendientes de pago en caja.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-48">
+                         {isLoading ? (
+                            <p className="text-muted-foreground p-3">Cargando...</p>
+                         ) : pendingSelfServicePurchases.length === 0 ? (
+                            <p className="text-muted-foreground p-3 text-center">No hay compras pendientes de autogestión.</p>
+                         ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Código</TableHead>
+                                        <TableHead>Cliente (Cédula)</TableHead>
+                                        <TableHead className="text-right">Monto</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {pendingSelfServicePurchases.map((purchase) => (
+                                        <TableRow key={purchase.id} className="hover:bg-accent cursor-pointer">
+                                            <TableCell className="font-mono">
+                                                <Link href={`/dashboard/redeem?code=${purchase.id}`} className="block w-full h-full">
+                                                    {purchase.id}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Link href={`/dashboard/redeem?code=${purchase.id}`} className="block w-full h-full">
+                                                    {purchase.cedula}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell className="text-right font-medium">
+                                                <Link href={`/dashboard/redeem?code=${purchase.id}`} className="block w-full h-full">
+                                                    {formatCurrency(purchase.total)}
+                                                </Link>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                          )}
                     </ScrollArea>
                 </CardContent>
