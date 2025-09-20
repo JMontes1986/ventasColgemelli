@@ -208,9 +208,17 @@ export default function SelfServicePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((product) => {
                 const isSoldOut = product.stock <= 0;
+                const cartItem = cart.find(item => item.id === product.id);
+                const quantityInCart = cartItem ? cartItem.quantity : 0;
+
                 return (
                   <Card key={product.id} className={cn("overflow-hidden group", isSoldOut && "opacity-50")}>
                     <div className={cn("aspect-square relative", !isSoldOut && "cursor-pointer")} onClick={() => !isSoldOut && addToCart(product)}>
+                      {quantityInCart > 0 && (
+                        <div className="absolute top-2 right-2 z-10 bg-accent text-accent-foreground h-8 w-8 rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
+                          {quantityInCart}
+                        </div>
+                      )}
                       <Image
                         src={product.imageUrl}
                         alt={product.name}
