@@ -10,11 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Search, Info, CheckCircle, TicketCheck, AlertTriangle, CreditCard } from "lucide-react";
 import { getPurchasesByCedula, getPurchaseById, getPurchasesByCelular, updatePurchase } from '@/lib/services/purchase-service';
-import type { Purchase } from '@/lib/types';
+import type { Purchase, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { useMockAuth } from '@/hooks/use-mock-auth';
+import { addAuditLog } from '@/lib/services/audit-service';
 
 const statusTranslations: Record<Purchase['status'], string> = {
     pending: 'Pendiente',
@@ -33,6 +35,7 @@ const statusColors: Record<Purchase['status'], string> = {
 function RedeemPageComponent() {
     const searchParams = useSearchParams();
     const codeFromUrl = searchParams.get('code');
+    const { role, users } = useMockAuth();
 
     const [searchCedula, setSearchCedula] = useState('');
     const [searchCelular, setSearchCelular] = useState('');
@@ -90,9 +93,20 @@ function RedeemPageComponent() {
         }
     }, [codeFromUrl]);
 
+    const getCurrentUser = (): User | undefined => {
+        return users.find(u => u.role === role);
+    }
 
     const handleUpdateStatus = async (purchaseId: string, newStatus: Purchase['status']) => {
         setIsUpdating(true);
+        const currentUser = getCurrentUser();
+
+        if (!currentUser) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario actual.' });
+            setIsUpdating(false);
+            return;
+        }
+
         try {
             await updatePurchase(purchaseId, { status: newStatus });
             setSearchResults(prev => prev.map(p => p.id === purchaseId ? { ...p, status: newStatus } : p));
@@ -100,6 +114,17 @@ function RedeemPageComponent() {
                 title: 'Éxito',
                 description: `El estado de la compra ha sido actualizado a ${statusTranslations[newStatus]}.`
             });
+
+            // Add audit log for payment confirmation
+            if (newStatus === 'paid') {
+                 await addAuditLog({
+                    userId: currentUser.id,
+                    userName: currentUser.name,
+                    action: 'PAYMENT_CONFIRM',
+                    details: `Pago confirmado para la compra ${purchaseId}.`,
+                });
+            }
+
         } catch (error) {
             console.error("Error updating purchase status:", error);
             toast({

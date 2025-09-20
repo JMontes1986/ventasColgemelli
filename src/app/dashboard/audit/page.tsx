@@ -1,3 +1,7 @@
+
+"use client";
+
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import {
   Card,
@@ -15,8 +19,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { AuditLogAction } from "@/lib/types";
+import type { AuditLog, AuditLogAction } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { getAuditLogs } from "@/lib/services/audit-service";
+import { useToast } from "@/hooks/use-toast";
 
 const getActionVariant = (action: AuditLogAction) => {
     switch (action) {
@@ -37,7 +43,25 @@ const getActionVariant = (action: AuditLogAction) => {
 }
 
 export default function AuditPage() {
-  const auditLogs: any[] = []; // Empty array
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function loadLogs() {
+      setIsLoading(true);
+      try {
+        const fetchedLogs = await getAuditLogs();
+        setAuditLogs(fetchedLogs);
+      } catch (error) {
+        console.error("Error fetching audit logs:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los registros de auditoría." });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadLogs();
+  }, [toast]);
 
   return (
     <div>
@@ -63,7 +87,13 @@ export default function AuditPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {auditLogs.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    Cargando registros...
+                  </TableCell>
+                </TableRow>
+              ) : auditLogs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center">
                     No hay registros de auditoría.

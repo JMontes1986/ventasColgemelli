@@ -3,6 +3,8 @@
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product, PurchaseStatus } from "@/lib/types";
+import { addAuditLog } from "./audit-service";
+import { useMockAuth } from "@/hooks/use-mock-auth";
 
 // Function to get all purchases, ordered by date
 export async function getPurchases(): Promise<Purchase[]> {
