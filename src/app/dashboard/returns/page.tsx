@@ -35,7 +35,7 @@ export default function ReturnsPage() {
     const [returnsHistory, setReturnsHistory] = useState<Return[]>([]);
     const [selectedProductId, setSelectedProductId] = useState<string>('');
     const [quantity, setQuantity] = useState(1);
-    const [source, setSource] = useState<ReturnSource | ''>('');
+    const [source, setSource] = useState<ReturnSource | ''>('Punto de Venta');
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [lastReturn, setLastReturn] = useState<{ name: string; quantity: number } | null>(null);
@@ -132,7 +132,7 @@ export default function ReturnsPage() {
             // Reset form
             setSelectedProductId('');
             setQuantity(1);
-            setSource('');
+            setSource('Punto de Venta');
 
         } catch (error) {
             console.error("Error processing return:", error);
