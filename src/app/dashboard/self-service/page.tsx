@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, ShoppingCart, History } from "lucide-react";
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import Image from 'next/image';
 import {
   Dialog,
@@ -70,7 +70,7 @@ export default function SelfServicePage() {
     setIsLoading(true);
     try {
         const fetchedProducts = await getSelfServiceProducts();
-        setProducts(fetchedProducts.filter(p => p.stock > 0));
+        setProducts(fetchedProducts);
     } catch (error) {
         console.error("Error fetching products:", error);
     } finally {
@@ -206,31 +206,39 @@ export default function SelfServicePage() {
             <p>Cargando productos...</p>
           ) : products.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <Card key={product.id} className="overflow-hidden group">
-                  <div className="aspect-square relative cursor-pointer" onClick={() => addToCart(product)}>
-                    <Image
-                      src={product.imageUrl}
-                      alt={product.name}
-                      fill
-                      className="object-cover transition-transform group-hover:scale-105"
-                      data-ai-hint={product.imageHint}
-                    />
-                    <div className="absolute inset-0 bg-black/20" />
-                  </div>
-
-                  <CardContent className="p-4">
-                    <h3 className="text-lg font-semibold">{product.name}</h3>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
-                      <Button size="sm" onClick={() => addToCart(product)}>
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        Agregar
-                      </Button>
+              {products.map((product) => {
+                const isSoldOut = product.stock <= 0;
+                return (
+                  <Card key={product.id} className={cn("overflow-hidden group", isSoldOut && "opacity-50")}>
+                    <div className={cn("aspect-square relative", !isSoldOut && "cursor-pointer")} onClick={() => !isSoldOut && addToCart(product)}>
+                      <Image
+                        src={product.imageUrl}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition-transform group-hover:scale-105"
+                        data-ai-hint={product.imageHint}
+                      />
+                      <div className="absolute inset-0 bg-black/20" />
+                       {isSoldOut && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Badge variant="destructive" className="text-lg">Agotado</Badge>
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+
+                    <CardContent className="p-4">
+                      <h3 className="text-lg font-semibold">{product.name}</h3>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
+                        <Button size="sm" onClick={() => addToCart(product)} disabled={isSoldOut}>
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                          Agregar
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           ) : (
             <p>No hay productos disponibles para autoservicio en este momento.</p>

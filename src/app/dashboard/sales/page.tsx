@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Ticket as TicketIcon } from "lucide-react";
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
 import { addPurchase, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
@@ -66,7 +66,7 @@ export default function SalesPage() {
     } finally {
         setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadData();
@@ -230,8 +230,10 @@ export default function SalesPage() {
                                 {productsForSale.length === 0 ? (
                                     <p className="text-muted-foreground p-3">No hay productos disponibles para la venta.</p>
                                 ) : (
-                                    productsForSale.map((product) => (
-                                        <div key={product.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                    productsForSale.map((product) => {
+                                      const isSoldOut = product.stock <= 0;
+                                      return (
+                                        <div key={product.id} className={cn("flex items-center justify-between p-3 bg-muted/50 rounded-lg", isSoldOut && "opacity-50")}>
                                             <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 bg-secondary rounded-md flex-shrink-0 relative">
                                                    <Image 
@@ -247,7 +249,7 @@ export default function SalesPage() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {product.stock <= 0 ? (
+                                                {isSoldOut ? (
                                                     <Badge variant="destructive">Agotado</Badge>
                                                 ) : (
                                                     <div className='flex items-center gap-2'>
@@ -257,12 +259,13 @@ export default function SalesPage() {
                                                         <Badge variant="outline">Stock: {product.stock}</Badge>
                                                     </div>
                                                 )}
-                                                <Button onClick={() => addToCart(product, 'product')} disabled={product.stock <= 0}>
+                                                <Button onClick={() => addToCart(product, 'product')} disabled={isSoldOut}>
                                                     Agregar
                                                 </Button>
                                             </div>
                                         </div>
-                                    ))
+                                      )
+                                    })
                                 )}
                             </div>
                          )}
