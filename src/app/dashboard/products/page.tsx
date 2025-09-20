@@ -61,22 +61,47 @@ function ProductForm({
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        if (isOpen && mode === 'edit' && initialData) {
+        if (mode === 'edit' && initialData) {
             setName(initialData.name);
             setPrice(initialData.price.toString());
             setStock(initialData.stock.toString());
             setImageUrl(initialData.imageUrl);
             setIsSelfService(initialData.isSelfService);
-            setIsPosAvailable(initialData.isPosAvailable);
-        } else if (isOpen && mode === 'create') {
-            setName('');
-            setPrice('');
-            setStock('');
-            setImageUrl('');
-            setIsSelfService(false);
-            setIsPosAvailable(true);
+            setIsPosAvailable(initialData.isPosAvailable ?? true);
         }
-    }, [isOpen, mode, initialData]);
+    }, [initialData, mode]);
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (!open) {
+            // Reset form when closing if it's in create mode
+             if (mode === 'create') {
+                setName('');
+                setPrice('');
+                setStock('');
+                setImageUrl('');
+                setIsSelfService(false);
+                setIsPosAvailable(true);
+            }
+        } else {
+             if (mode === 'edit' && initialData) {
+                setName(initialData.name);
+                setPrice(initialData.price.toString());
+                setStock(initialData.stock.toString());
+                setImageUrl(initialData.imageUrl);
+                setIsSelfService(initialData.isSelfService);
+                setIsPosAvailable(initialData.isPosAvailable ?? true);
+            } else {
+                setName('');
+                setPrice('');
+                setStock('');
+                setImageUrl('');
+                setIsSelfService(false);
+                setIsPosAvailable(true);
+            }
+        }
+    };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -140,7 +165,7 @@ function ProductForm({
     );
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                  {trigger}
             </DialogTrigger>
@@ -331,3 +356,5 @@ export default function ProductsPage() {
     </div>
   );
 }
+
+    
