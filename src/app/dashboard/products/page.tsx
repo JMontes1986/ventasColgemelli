@@ -18,12 +18,13 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store, Plus } from "lucide-react";
 import { PermissionGate } from "@/components/permission-gate";
 import Image from "next/image";
 import { mockProducts } from "@/lib/placeholder-data";
-import type { Product } from "@/lib/types";
+import type { Product, User } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -35,10 +36,11 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
-import { getProducts, addProduct, addProductWithId, type NewProduct, updateProduct } from "@/lib/services/product-service";
+import { getProducts, addProduct, addProductWithId, type NewProduct, updateProduct, increaseProductStock } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { useMockAuth } from "@/hooks/use-mock-auth";
 
 function ProductForm({ 
     mode, 
@@ -218,6 +220,91 @@ function ProductForm({
     )
 }
 
+function RestockForm({ product, onStockUpdated }: { product: Product; onStockUpdated: (product: Product) => void; }) {
+    const { toast } = useToast();
+    const { currentUser } = useMockAuth();
+    const [quantity, setQuantity] = useState(1);
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (open) {
+            setQuantity(1);
+        }
+    };
+    
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!currentUser) {
+            toast({ variant: "destructive", title: "Error", description: "No se pudo identificar al usuario actual." });
+            return;
+        }
+
+        if (quantity <= 0) {
+            toast({ variant: "destructive", title: "Cantidad Inválida", description: "La cantidad a añadir debe ser mayor que cero." });
+            return;
+        }
+
+        try {
+            await increaseProductStock(product.id, quantity, currentUser);
+            const updatedProduct = { ...product, stock: product.stock + quantity };
+            onStockUpdated(updatedProduct);
+            toast({ title: "Éxito", description: `Se añadieron ${quantity} unidades al stock de ${product.name}.` });
+            setIsOpen(false);
+        } catch (error) {
+            console.error("Error restocking product:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el stock." });
+        }
+    };
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Añadir Stock
+                </DropdownMenuItem>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Añadir Stock para: {product.name}</DialogTitle>
+                    <DialogDescription>
+                        Esta acción incrementará el stock actual del producto. Quedará registrada en la auditoría como un reintegro.
+                    </DialogDescription>
+                </DialogHeader>
+                <form id={`restock-form-${product.id}`} onSubmit={handleSubmit}>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <p className="text-sm">Stock Actual: <span className="font-bold">{product.stock}</span></p>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="quantity-to-add">Cantidad a Añadir</Label>
+                            <Input 
+                                id="quantity-to-add" 
+                                type="number" 
+                                value={quantity} 
+                                onChange={e => setQuantity(Number(e.target.value))} 
+                                min="1"
+                                required 
+                            />
+                        </div>
+                        <div className="text-sm font-semibold">
+                            <p>Nuevo Stock Total: {product.stock + quantity}</p>
+                        </div>
+                    </div>
+                </form>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">Cancelar</Button>
+                    </DialogClose>
+                    <Button type="submit" form={`restock-form-${product.id}`}>Confirmar Reintegro</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -305,6 +392,8 @@ export default function ProductsPage() {
                                     onProductAdded={handleProductAdded}
                                     onProductUpdated={handleProductUpdated}
                                 />
+                                <RestockForm product={product} onStockUpdated={handleProductUpdated} />
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-destructive">
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Eliminar
@@ -356,3 +445,5 @@ export default function ProductsPage() {
     </div>
   );
 }
+
+    

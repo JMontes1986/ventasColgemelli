@@ -68,7 +68,7 @@ export type CashboxSession = {
   totalSales: number;
 };
 
-export type AuditLogAction = 'TICKET_ISSUE' | 'TICKET_SELL' | 'TICKET_REDEEM' | 'TICKET_VOID' | 'CASHBOX_OPEN' | 'CASHBOX_CLOSE' | 'USER_ROLE_CHANGE' | 'PAYMENT_CONFIRM';
+export type AuditLogAction = 'TICKET_ISSUE' | 'TICKET_SELL' | 'TICKET_REDEEM' | 'TICKET_VOID' | 'CASHBOX_OPEN' | 'CASHBOX_CLOSE' | 'USER_ROLE_CHANGE' | 'PAYMENT_CONFIRM' | 'STOCK_RESTOCK';
 
 export type AuditLog = {
   id: string;
@@ -137,3 +137,5 @@ export type Return = {
 
 // Type for creating a new return record
 export type NewReturn = Omit<Return, 'id'>;
+
+    

@@ -33,6 +33,7 @@ const getActionVariant = (action: AuditLogAction) => {
         case 'PAYMENT_CONFIRM':
             return 'bg-green-500/20 text-green-700';
         case 'TICKET_REDEEM':
+        case 'STOCK_RESTOCK':
             return 'bg-purple-500/20 text-purple-700';
         case 'TICKET_VOID':
         case 'CASHBOX_CLOSE':
@@ -124,3 +125,5 @@ export default function AuditPage() {
     </div>
   );
 }
+
+    

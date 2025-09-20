@@ -1,7 +1,8 @@
 
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, runTransaction, increment } from "firebase/firestore";
-import type { Product } from "@/lib/types";
+import type { Product, User } from "@/lib/types";
+import { addAuditLog } from "./audit-service";
 
 // Type for creating a new product, ID is optional as Firestore will generate it
 export type NewProduct = Omit<Product, 'id'>;
@@ -55,10 +56,27 @@ export async function updateProduct(productId: string, product: UpdatableProduct
     await updateDoc(productRef, product);
 }
 
-// Function to increase the stock of a product (for returns)
-export async function increaseProductStock(productId: string, quantity: number): Promise<void> {
+// Function to increase the stock of a product (for returns or restocking)
+export async function increaseProductStock(productId: string, quantity: number, user?: User): Promise<void> {
     const productRef = doc(db, 'products', productId);
+    
+    // If a user is provided, it's a manual restock, so we log it.
+    if (user) {
+         const productDoc = await getDoc(productRef);
+         if (productDoc.exists()) {
+            const productName = productDoc.data().name;
+            await addAuditLog({
+                userId: user.id,
+                userName: user.name,
+                action: 'STOCK_RESTOCK',
+                details: `Reintegro de stock para '${productName}'. Cantidad: +${quantity}.`,
+            });
+         }
+    }
+    
     await updateDoc(productRef, {
         stock: increment(quantity)
     });
 }
+
+    

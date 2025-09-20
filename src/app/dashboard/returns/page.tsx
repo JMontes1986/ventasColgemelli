@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Undo2, CheckCircle, PackageSearch } from "lucide-react";
-import { getProducts, increaseProductStock } from '@/lib/services/product-service';
+import { getProducts } from '@/lib/services/product-service';
 import type { Product, Return, ReturnSource } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { addReturn, getReturns } from '@/lib/services/return-service';
+import { getReturns, addReturnAndUpdateStock } from '@/lib/services/return-service';
 import { useMockAuth } from '@/hooks/use-mock-auth';
 import {
   Table,
@@ -35,7 +35,7 @@ export default function ReturnsPage() {
     const [returnsHistory, setReturnsHistory] = useState<Return[]>([]);
     const [selectedProductId, setSelectedProductId] = useState<string>('');
     const [quantity, setQuantity] = useState(1);
-    const [source, setSource] = useState<ReturnSource | ''>('Punto de Venta');
+    const [source, setSource] = useState<ReturnSource>('Punto de Venta');
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [lastReturn, setLastReturn] = useState<{ name: string; quantity: number } | null>(null);
@@ -95,12 +95,8 @@ export default function ReturnsPage() {
         }
 
         try {
-            // This is now a two-step process inside a single function
-            // 1. Increase stock
-            await increaseProductStock(selectedProductId, quantity);
-
-            // 2. Log the return
-            const newReturnRecord = await addReturn({
+            // This function now handles both stock update and return logging
+            const newReturnRecord = await addReturnAndUpdateStock({
                 productId: selectedProductId,
                 productName: returnedProduct.name,
                 quantity: quantity,
@@ -312,3 +308,5 @@ export default function ReturnsPage() {
         </div>
     );
 }
+
+    
