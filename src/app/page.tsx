@@ -18,7 +18,7 @@ import { Gem, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authenticateUser, addUser } from "@/lib/services/user-service";
 import { useMockAuth } from "@/hooks/use-mock-auth";
-import type { NewUser } from "@/lib/types";
+import type { NewUser, ModulePermission } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,12 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+
+const allModules: ModulePermission[] = [
+  'dashboard', 'sales', 'self-service', 'products', 'redeem', 
+  'cashbox', 'returns', 'users', 'audit'
+];
+
 
 function CreateUserForm({ onUserCreated }: { onUserCreated: () => void }) {
   const { toast } = useToast();
@@ -47,13 +53,13 @@ function CreateUserForm({ onUserCreated }: { onUserCreated: () => void }) {
         name,
         username,
         password,
-        permissions: ["dashboard"], // Default limited permissions
+        permissions: allModules, // Assign all permissions by default
         avatarUrl: `https://picsum.photos/seed/${username}/100/100`,
       };
       await addUser(newUser);
       toast({
         title: "Usuario creado",
-        description: "Tu cuenta ha sido creada exitosamente. Ahora puedes iniciar sesión.",
+        description: "Tu cuenta ha sido creada con permisos de administrador.",
       });
       onUserCreated();
       setIsOpen(false); // Close the dialog on success
@@ -80,7 +86,7 @@ function CreateUserForm({ onUserCreated }: { onUserCreated: () => void }) {
         <DialogHeader>
           <DialogTitle>Crear Nueva Cuenta</DialogTitle>
           <DialogDescription>
-            Completa el formulario para registrarte. Los nuevos usuarios tendrán acceso limitado.
+            Completa el formulario para registrarte. Las nuevas cuentas tendrán acceso de administrador.
           </DialogDescription>
         </DialogHeader>
         <form id="create-user-form" onSubmit={handleCreateUser}>
