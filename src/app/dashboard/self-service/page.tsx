@@ -225,7 +225,7 @@ export default function SelfServicePage() {
                     <h3 className="text-lg font-semibold">{product.name}</h3>
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
-                      <Button onClick={() => addToCart(product)}>
+                      <Button size="sm" onClick={() => addToCart(product)}>
                         <ShoppingCart className="mr-2 h-4 w-4" />
                         Agregar
                       </Button>
