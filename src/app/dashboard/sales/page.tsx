@@ -216,6 +216,14 @@ export default function SalesPage() {
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const change = customerPayment - subtotal;
 
+  const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const numericValue = parseInt(rawValue, 10) || 0;
+    setCustomerPayment(numericValue);
+  };
+
+  const formattedPayment = new Intl.NumberFormat('es-CO').format(customerPayment);
+
   return (
     <div>
       <PageHeader
@@ -420,11 +428,11 @@ export default function SalesPage() {
                         <label htmlFor="customer-payment" className="font-semibold">CLIENTE</label>
                         <Input 
                             id="customer-payment"
-                            type="number"
+                            type="text"
                             className="w-32 bg-blue-900 border-blue-700 text-right font-bold text-xl"
                             placeholder="0"
-                            value={customerPayment || ''}
-                            onChange={(e) => setCustomerPayment(parseFloat(e.target.value) || 0)}
+                            value={customerPayment === 0 ? '' : formattedPayment}
+                            onChange={handlePaymentChange}
                         />
                     </div>
                     <div className="flex justify-between font-bold text-red-500">
