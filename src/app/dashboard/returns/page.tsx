@@ -38,7 +38,7 @@ export default function ReturnsPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [lastReturn, setLastReturn] = useState<{ name: string; quantity: number } | null>(null);
     const { toast } = useToast();
-    const { role, users } = useMockAuth();
+    const { currentUser } = useMockAuth();
 
     useEffect(() => {
         async function loadInitialData() {
@@ -67,7 +67,6 @@ export default function ReturnsPage() {
     const handleReturn = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        const currentUser = users.find(u => u.role === role);
         if (!currentUser) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario actual.' });
             return;

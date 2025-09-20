@@ -4,13 +4,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { RoleGate } from "../role-gate";
-import { navItems, adminNavItems } from "./sidebar-nav"; // Keep adminNavItems if you have them
+import { PermissionGate } from "../permission-gate";
+import { navItems, adminNavItems } from "./sidebar-nav";
 
-// Combine navItems and a new returns item
+// Combine all nav items
 const allNavItems = [
   ...navItems,
-  { href: "/dashboard/returns", label: "Devoluciones", allowedRoles: ['admin', 'cashier'] },
   ...adminNavItems,
 ];
 
@@ -22,11 +21,11 @@ export function TopNav({
 
   return (
     <nav
-      className={cn("flex items-center space-x-4 lg:space-x-6", className)}
+      className={cn("hidden items-center space-x-4 lg:space-x-6 md:flex", className)}
       {...props}
     >
       {allNavItems.map((item) => (
-        <RoleGate key={item.href} allowedRoles={item.allowedRoles}>
+        <PermissionGate key={item.href} requiredPermission={item.permission}>
           <Link
             href={item.href}
             className={cn(
@@ -36,10 +35,8 @@ export function TopNav({
           >
             {item.label}
           </Link>
-        </RoleGate>
+        </PermissionGate>
       ))}
     </nav>
   );
 }
-
-    

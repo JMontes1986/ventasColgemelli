@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store } from "lucide-react";
-import { RoleGate } from "@/components/role-gate";
+import { PermissionGate } from "@/components/permission-gate";
 import Image from "next/image";
 import { mockProducts } from "@/lib/placeholder-data";
 import type { Product } from "@/lib/types";
@@ -272,7 +272,7 @@ export default function ProductsPage() {
         title="Productos"
         description="Gestionar el inventario de productos para la venta."
       >
-        <RoleGate allowedRoles={['admin', 'cashier']}>
+        <PermissionGate requiredPermission="products">
            {!hasSeeded && (
             <Button variant="outline" onClick={handleSeedDatabase}>
                 <Database className="mr-2 h-4 w-4" />
@@ -280,7 +280,7 @@ export default function ProductsPage() {
             </Button>
            )}
            <ProductForm mode="create" onProductAdded={handleProductAdded} onProductUpdated={handleProductUpdated} />
-        </RoleGate>
+        </PermissionGate>
       </PageHeader>
       
       {isLoading ? (
@@ -289,7 +289,7 @@ export default function ProductsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {products.map((product) => (
             <Card key={product.id} className="overflow-hidden relative group">
-                <RoleGate allowedRoles={['admin', 'cashier']}>
+                <PermissionGate requiredPermission="products">
                     <div className="absolute top-2 right-2 z-10">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -312,7 +312,7 @@ export default function ProductsPage() {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
-                </RoleGate>
+                </PermissionGate>
                 <div className="aspect-square relative">
                 <Image
                     src={product.imageUrl}

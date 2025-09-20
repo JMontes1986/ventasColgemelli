@@ -1,12 +1,19 @@
 
-import type { User, Ticket, Order, CashboxSession, AuditLog, Product } from '@/lib/types';
+import type { User, Ticket, Order, CashboxSession, AuditLog, Product, ModulePermission } from '@/lib/types';
 
-export const mockUsers: User[] = [
-  { id: 'user-1', username: 'admin', name: 'Administrador', password: 'password', role: 'admin', avatarUrl: `https://picsum.photos/seed/admin/100/100` },
-  { id: 'user-2', username: 'carlos.ruiz', name: 'Carlos Ruiz', password: 'password', role: 'cashier', avatarUrl: `https://picsum.photos/seed/carlos.ruiz/100/100` },
-  { id: 'user-3', username: 'sofia.gomez', name: 'Sofia Gomez', password: 'password', role: 'seller', avatarUrl: `https://picsum.photos/seed/sofia.gomez/100/100` },
-  { id: 'user-4', username: 'david.chen', name: 'David Chen', password: 'password', role: 'auditor', avatarUrl: `https://picsum.photos/seed/david.chen/100/100` },
-  { id: 'user-5', username: 'maria.rodriguez', name: 'Maria Rodriguez', password: 'password', role: 'readonly', avatarUrl: `https://picsum.photos/seed/maria.rodriguez/100/100` },
+const allPermissions: ModulePermission[] = ['dashboard', 'sales', 'self-service', 'products', 'redeem', 'cashbox', 'returns', 'users', 'audit'];
+const cashierPermissions: ModulePermission[] = ['dashboard', 'sales', 'products', 'redeem', 'cashbox', 'returns'];
+const sellerPermissions: ModulePermission[] = ['dashboard', 'sales'];
+const auditorPermissions: ModulePermission[] = ['dashboard', 'redeem', 'audit'];
+const readonlyPermissions: ModulePermission[] = ['dashboard'];
+
+
+export const mockUsers: Omit<User, 'id'>[] = [
+  { username: 'admin', name: 'Administrador', password: 'password', permissions: allPermissions, avatarUrl: `https://picsum.photos/seed/admin/100/100` },
+  { username: 'carlos.ruiz', name: 'Carlos Ruiz', password: 'password', permissions: cashierPermissions, avatarUrl: `https://picsum.photos/seed/carlos.ruiz/100/100` },
+  { username: 'sofia.gomez', name: 'Sofia Gomez', password: 'password', permissions: sellerPermissions, avatarUrl: `https://picsum.photos/seed/sofia.gomez/100/100` },
+  { username: 'david.chen', name: 'David Chen', password: 'password', permissions: auditorPermissions, avatarUrl: `https://picsum.photos/seed/david.chen/100/100` },
+  { username: 'maria.rodriguez', name: 'Maria Rodriguez', password: 'password', permissions: readonlyPermissions, avatarUrl: `https://picsum.photos/seed/maria.rodriguez/100/100` },
 ];
 
 export const mockTickets: Ticket[] = [];

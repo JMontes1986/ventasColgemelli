@@ -15,9 +15,11 @@ import { useMockAuth } from "@/hooks/use-mock-auth";
 import { TopNav } from "./top-nav";
 import Link from "next/link";
 import { Logo } from "../icons";
+import { useRouter } from "next/navigation";
 
 export function Header() {
-  const { role, users, isMounted } = useMockAuth();
+  const { currentUser, isMounted, logout } = useMockAuth();
+  const router = useRouter();
   
   if (!isMounted) {
     return (
@@ -27,7 +29,10 @@ export function Header() {
     );
   }
 
-  const currentUser = users.find(u => u.role === role);
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  }
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
@@ -59,10 +64,7 @@ export function Header() {
                 </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Perfil</DropdownMenuItem>
-                <DropdownMenuItem>Configuración</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Cerrar Sesión</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>Cerrar Sesión</DropdownMenuItem>
             </DropdownMenuContent>
             </DropdownMenu>
         )}

@@ -2,12 +2,24 @@
 
 export type UserRole = 'admin' | 'cashier' | 'seller' | 'auditor' | 'readonly';
 
+export type ModulePermission =
+  | 'dashboard'
+  | 'sales'
+  | 'self-service'
+  | 'products'
+  | 'redeem'
+  | 'cashbox'
+  | 'returns'
+  | 'users'
+  | 'audit';
+
+
 export type User = {
   id: string;
   name: string;
   username: string;
   password?: string;
-  role: UserRole;
+  permissions: ModulePermission[];
   avatarUrl: string;
 };
 

@@ -15,7 +15,7 @@ import { useMockAuth } from "@/hooks/use-mock-auth";
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { setMockRole } = useMockAuth();
+  const { login } = useMockAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +27,11 @@ export default function LoginPage() {
     try {
       const authenticatedUser = await authenticateUser(username, password);
       if (authenticatedUser) {
-        setMockRole(authenticatedUser.role);
+        login(authenticatedUser);
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: `¡Bienvenido de nuevo, ${authenticatedUser.name}!`,
+        });
         router.push("/dashboard");
       } else {
         toast({

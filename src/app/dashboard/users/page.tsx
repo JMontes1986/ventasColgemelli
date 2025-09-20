@@ -19,19 +19,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { User, UserRole, NewUser, UpdatableUser } from "@/lib/types";
-import { getUsers, addUser, updateUserRole, addSeedUsers } from "@/lib/services/user-service";
+import type { User, NewUser, ModulePermission } from "@/lib/types";
+import { getUsers, addUser, updateUserPermissions, addSeedUsers } from "@/lib/services/user-service";
 import { useToast } from "@/hooks/use-toast";
-import { RoleGate } from "@/components/role-gate";
-import { PlusCircle, Database } from "lucide-react";
+import { PermissionGate } from "@/components/permission-gate";
+import { PlusCircle, Database, Edit } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,115 +37,160 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
-const roleTranslations: Record<UserRole, string> = {
-  admin: "Admin",
-  cashier: "Cajero",
-  seller: "Vendedor",
-  auditor: "Auditor",
-  readonly: "Solo Lectura",
+const moduleNames: Record<ModulePermission, string> = {
+  'dashboard': 'Panel de Control',
+  'sales': 'Punto de Venta',
+  'self-service': 'Autogestión',
+  'products': 'Productos',
+  'redeem': 'Canjear Compras',
+  'cashbox': 'Gestión de Caja',
+  'returns': 'Devoluciones',
+  'users': 'Gestión de Usuarios',
+  'audit': 'Auditoría',
 };
 
+const allModules = Object.keys(moduleNames) as ModulePermission[];
+
 function UserForm({
+    mode,
+    initialData,
     onUserAdded,
+    onUserUpdated,
 }: {
+    mode: 'create' | 'edit';
+    initialData?: User;
     onUserAdded: (user: User) => void;
+    onUserUpdated: (user: User) => void;
 }) {
     const { toast } = useToast();
     const [name, setName] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState<UserRole>('readonly');
+    const [permissions, setPermissions] = useState<ModulePermission[]>([]);
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
-            setName('');
-            setUsername('');
-            setPassword('');
-            setRole('readonly');
+            if (mode === 'edit' && initialData) {
+                setName(initialData.name);
+                setUsername(initialData.username);
+                setPassword('');
+                setPermissions(initialData.permissions || []);
+            } else {
+                setName('');
+                setUsername('');
+                setPassword('');
+                setPermissions([]);
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, mode, initialData]);
+
+    const handlePermissionChange = (permission: ModulePermission, checked: boolean) => {
+        setPermissions(prev =>
+            checked ? [...prev, permission] : prev.filter(p => p !== permission)
+        );
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        const newUserData: NewUser = {
-            name,
-            username,
-            password,
-            role,
-            avatarUrl: `https://picsum.photos/seed/${name.replace(/\s/g, '')}/100/100`,
-        };
+        if (mode === 'create') {
+            const newUserData: NewUser = {
+                name,
+                username,
+                password,
+                permissions,
+                avatarUrl: `https://picsum.photos/seed/${name.replace(/\s/g, '')}/100/100`,
+            };
 
-        try {
-            const addedUser = await addUser(newUserData);
-            onUserAdded(addedUser);
-            toast({ title: "Éxito", description: "Usuario añadido correctamente." });
-            setIsOpen(false);
-        } catch (error) {
-            console.error("Error adding user:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudo añadir el usuario." });
+            try {
+                const addedUser = await addUser(newUserData);
+                onUserAdded(addedUser);
+                toast({ title: "Éxito", description: "Usuario añadido correctamente." });
+                setIsOpen(false);
+            } catch (error) {
+                console.error("Error adding user:", error);
+                toast({ variant: "destructive", title: "Error", description: "No se pudo añadir el usuario." });
+            }
+        } else if (mode === 'edit' && initialData) {
+            try {
+                await updateUserPermissions(initialData.id, permissions);
+                const updatedUser = { ...initialData, permissions };
+                onUserUpdated(updatedUser);
+                toast({ title: "Éxito", description: "Permisos actualizados." });
+                setIsOpen(false);
+            } catch (error) {
+                console.error("Error updating user:", error);
+                toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el usuario." });
+            }
         }
     };
 
+    const trigger = mode === 'create' ? (
+        <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Crear Usuario
+        </Button>
+    ) : (
+        <Button variant="outline" size="sm">
+            <Edit className="mr-2 h-4 w-4" />
+            Editar Permisos
+        </Button>
+    );
+
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                 <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Crear Usuario
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogTrigger asChild>{trigger}</DialogTrigger>
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Crear Nuevo Usuario</DialogTitle>
-                    <DialogDescription>Complete los detalles del nuevo usuario.</DialogDescription>
+                    <DialogTitle>{mode === 'create' ? 'Crear Nuevo Usuario' : 'Editar Permisos'}</DialogTitle>
+                    <DialogDescription>
+                        {mode === 'create' ? 'Complete los detalles del nuevo usuario.' : `Editando permisos para ${initialData?.name}.`}
+                    </DialogDescription>
                 </DialogHeader>
-                <form id="user-form" onSubmit={handleSubmit}>
+                <form id={`user-form-${initialData?.id || 'create'}`} onSubmit={handleSubmit}>
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="user-name">Nombre Completo</Label>
-                            <Input id="user-name" placeholder="Ej: Juan Pérez" value={name} onChange={e => setName(e.target.value)} required />
+                            <Input id="user-name" placeholder="Ej: Juan Pérez" value={name} onChange={e => setName(e.target.value)} required disabled={mode === 'edit'} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="user-username">Nombre de Usuario</Label>
-                            <Input id="user-username" placeholder="ej: juan.perez" value={username} onChange={e => setUsername(e.target.value)} required/>
+                            <Input id="user-username" placeholder="ej: juan.perez" value={username} onChange={e => setUsername(e.target.value)} required disabled={mode === 'edit'} />
                         </div>
+                        {mode === 'create' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="user-password">Contraseña</Label>
+                                <Input id="user-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                            </div>
+                        )}
                         <div className="space-y-2">
-                            <Label htmlFor="user-password">Contraseña</Label>
-                            <Input id="user-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required/>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="user-role">Rol</Label>
-                             <Select onValueChange={(value: UserRole) => setRole(value)} defaultValue={role}>
-                                <SelectTrigger id="user-role">
-                                    <SelectValue placeholder="Seleccionar rol" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="admin">{roleTranslations.admin}</SelectItem>
-                                    <SelectItem value="cashier">{roleTranslations.cashier}</SelectItem>
-                                    <SelectItem value="seller">{roleTranslations.seller}</SelectItem>
-                                    <SelectItem value="auditor">{roleTranslations.auditor}</SelectItem>
-                                    <SelectItem value="readonly">{roleTranslations.readonly}</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Label>Permisos de Módulo</Label>
+                            <div className="space-y-2 rounded-md border p-4 max-h-60 overflow-y-auto">
+                                {allModules.map(permission => (
+                                    <div key={permission} className="flex items-center justify-between">
+                                        <Label htmlFor={`perm-${permission}`}>{moduleNames[permission]}</Label>
+                                        <Switch
+                                            id={`perm-${permission}`}
+                                            checked={permissions.includes(permission)}
+                                            onCheckedChange={(checked) => handlePermissionChange(permission, checked)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </form>
                 <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="secondary">
-                            Cancelar
-                        </Button>
-                    </DialogClose>
-                    <Button type="submit" form="user-form">Guardar Usuario</Button>
+                    <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                    <Button type="submit" form={`user-form-${initialData?.id || 'create'}`}>{mode === 'create' ? 'Guardar Usuario' : 'Guardar Cambios'}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     )
 }
-
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -182,18 +220,8 @@ export default function UsersPage() {
     setUsers(prevUsers => [...prevUsers, newUser]);
   };
 
-  const handleRoleChange = (userId: string, newRole: UserRole) => {
-    setUsers(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, role: newRole } : u));
-  };
-
-  const handleSaveChanges = async (userId: string, newRole: UserRole) => {
-     try {
-        await updateUserRole(userId, newRole);
-        toast({ title: "Éxito", description: "Rol de usuario actualizado correctamente." });
-    } catch (error) {
-        console.error("Error updating user role:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el rol del usuario." });
-    }
+  const handleUserUpdated = (updatedUser: User) => {
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
   };
 
   const handleSeedDatabase = async () => {
@@ -209,28 +237,27 @@ export default function UsersPage() {
     }
   };
 
-
   return (
     <div>
       <PageHeader
         title="Gestión de Usuarios"
-        description="Administrar roles y permisos de usuario."
+        description="Administrar usuarios y sus permisos de acceso a módulos."
       >
-        <RoleGate allowedRoles={['admin']}>
+        <PermissionGate requiredPermission="users">
             {!hasSeeded && !isLoading && (
                  <Button variant="outline" onClick={handleSeedDatabase}>
                     <Database className="mr-2 h-4 w-4" />
                     Cargar Usuarios de Ejemplo
                 </Button>
             )}
-           <UserForm onUserAdded={handleUserAdded} />
-        </RoleGate>
+           <UserForm mode="create" onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
+        </PermissionGate>
       </PageHeader>
       <Card>
         <CardHeader>
           <CardTitle>Usuarios</CardTitle>
           <CardDescription>
-            Asigne roles a los usuarios para controlar su acceso al sistema.
+            Una lista de todos los usuarios y los módulos a los que tienen acceso.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -241,8 +268,7 @@ export default function UsersPage() {
                 <TableHeader>
                 <TableRow>
                     <TableHead>Usuario</TableHead>
-                    <TableHead>Nombre de Usuario</TableHead>
-                    <TableHead>Rol</TableHead>
+                    <TableHead>Permisos</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
                 </TableHeader>
@@ -255,31 +281,21 @@ export default function UsersPage() {
                             <AvatarImage src={user.avatarUrl} alt={user.name} />
                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{user.name}</span>
+                        <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-sm text-muted-foreground">{user.username}</p>
+                        </div>
                         </div>
                     </TableCell>
-                    <TableCell>{user.username}</TableCell>
                     <TableCell>
-                        <Select
-                            defaultValue={user.role}
-                            onValueChange={(newRole: UserRole) => handleRoleChange(user.id, newRole)}
-                        >
-                            <SelectTrigger className="w-36">
-                                <SelectValue placeholder="Seleccionar rol" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="admin">{roleTranslations.admin}</SelectItem>
-                                <SelectItem value="cashier">{roleTranslations.cashier}</SelectItem>
-                                <SelectItem value="seller">{roleTranslations.seller}</SelectItem>
-                                <SelectItem value="auditor">{roleTranslations.auditor}</SelectItem>
-                                <SelectItem value="readonly">{roleTranslations.readonly}</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-wrap gap-1 max-w-md">
+                           {user.permissions?.map(p => (
+                               <span key={p} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{moduleNames[p]}</span>
+                           )) || <span className="text-xs text-muted-foreground">Sin permisos</span>}
+                        </div>
                     </TableCell>
                     <TableCell className="text-right">
-                        <Button variant="outline" onClick={() => handleSaveChanges(user.id, user.role)}>
-                            Guardar Rol
-                        </Button>
+                        <UserForm mode="edit" initialData={user} onUserAdded={handleUserAdded} onUserUpdated={handleUserUpdated} />
                     </TableCell>
                     </TableRow>
                 ))}

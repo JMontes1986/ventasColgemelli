@@ -2,37 +2,39 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { UserRole, User } from "@/lib/types";
-import { getUsers } from "@/lib/services/user-service";
+import type { ModulePermission, User } from "@/lib/types";
+import { getUsers, authenticateUser } from "@/lib/services/user-service";
 
-const MOCK_AUTH_KEY = "mock_user_role";
+const AUTH_USER_KEY = "auth_user_id";
 const USERS_CACHE_KEY = "all_users";
 
 export function useMockAuth() {
-  const [role, setRole] = useState<UserRole>('readonly');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     async function loadAuth() {
         try {
-            const storedRole = localStorage.getItem(MOCK_AUTH_KEY) as UserRole;
-            if (storedRole) {
-                setRole(storedRole);
+            const storedUserId = localStorage.getItem(AUTH_USER_KEY);
+            const cachedUsers = sessionStorage.getItem(USERS_CACHE_KEY);
+            
+            let allUsers: User[] = [];
+            if (cachedUsers) {
+                allUsers = JSON.parse(cachedUsers);
+            } else {
+                allUsers = await getUsers();
+                sessionStorage.setItem(USERS_CACHE_KEY, JSON.stringify(allUsers));
+            }
+            setUsers(allUsers);
+
+            if (storedUserId) {
+                const user = allUsers.find(u => u.id === storedUserId);
+                setCurrentUser(user || null);
             }
 
-            // Attempt to get users from cache first
-            const cachedUsers = sessionStorage.getItem(USERS_CACHE_KEY);
-            if (cachedUsers) {
-                setUsers(JSON.parse(cachedUsers));
-            } else {
-                // If not in cache, fetch from DB
-                const fetchedUsers = await getUsers();
-                setUsers(fetchedUsers);
-                sessionStorage.setItem(USERS_CACHE_KEY, JSON.stringify(fetchedUsers));
-            }
         } catch (error) {
-            console.warn("Could not read mock auth role from localStorage or fetch users", error);
+            console.warn("Could not read auth state from localStorage or fetch users", error);
         } finally {
             setIsMounted(true);
         }
@@ -40,15 +42,40 @@ export function useMockAuth() {
     loadAuth();
   }, []);
 
-  const setMockRole = useCallback((newRole: UserRole) => {
+  const login = useCallback((user: User) => {
     try {
-      localStorage.setItem(MOCK_AUTH_KEY, newRole);
-      setRole(newRole);
+      localStorage.setItem(AUTH_USER_KEY, user.id);
+      setCurrentUser(user);
     } catch (error) {
-      console.warn("Could not set mock auth role in localStorage", error);
-      setRole(newRole);
+      console.warn("Could not set auth state in localStorage", error);
+      setCurrentUser(user);
     }
   }, []);
 
-  return { role: isMounted ? role : 'readonly', users, setMockRole, isMounted };
+  const logout = useCallback(() => {
+    try {
+      localStorage.removeItem(AUTH_USER_KEY);
+      setCurrentUser(null);
+    } catch (error) {
+       console.warn("Could not clear auth state from localStorage", error);
+       setCurrentUser(null);
+    }
+  }, []);
+
+  const hasPermission = (requiredPermission: ModulePermission) => {
+      if (!isMounted || !currentUser) return false;
+      return currentUser.permissions.includes(requiredPermission);
+  }
+
+  const permissions = isMounted && currentUser ? currentUser.permissions : [];
+
+  return { 
+      currentUser, 
+      users, 
+      login,
+      logout,
+      isMounted,
+      hasPermission,
+      permissions,
+  };
 }

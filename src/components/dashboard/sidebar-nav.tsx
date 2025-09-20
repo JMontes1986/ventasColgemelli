@@ -3,8 +3,6 @@
 
 import {
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
@@ -23,38 +21,45 @@ import {
   LogOut,
   Package,
   UserCog,
+  Undo2,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMockAuth } from "@/hooks/use-mock-auth";
-import type { UserRole } from "@/lib/types";
-import { RoleGate } from "../role-gate";
+import type { ModulePermission } from "@/lib/types";
+import { PermissionGate } from "../permission-gate";
 
-const roleTranslations: Record<UserRole, string> = {
-  admin: "Admin",
-  cashier: "Cajero",
-  seller: "Vendedor",
-  auditor: "Auditor",
-  readonly: "Solo Lectura",
-};
+type NavItem = {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  permission: ModulePermission;
+}
 
-export const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Panel", allowedRoles: ['admin', 'cashier', 'seller', 'auditor', 'readonly'] },
-  { href: "/dashboard/sales", icon: ShoppingCart, label: "Ventas", allowedRoles: ['admin', 'cashier', 'seller'] },
-  { href: "/dashboard/self-service", icon: UserCog, label: "Autogestión", allowedRoles: ['admin', 'seller', 'cashier', 'auditor', 'readonly'] },
-  { href: "/dashboard/products", icon: Package, label: "Productos", allowedRoles: ['admin', 'cashier'] },
-  { href: "/dashboard/redeem", icon: QrCode, label: "Canjear", allowedRoles: ['admin', 'auditor', 'cashier'] },
-  { href: "/dashboard/cashbox", icon: Archive, label: "Caja", allowedRoles: ['admin', 'cashier'] },
+export const navItems: NavItem[] = [
+  { href: "/dashboard", icon: LayoutDashboard, label: "Panel", permission: 'dashboard' },
+  { href: "/dashboard/sales", icon: ShoppingCart, label: "Ventas", permission: 'sales' },
+  { href: "/dashboard/self-service", icon: UserCog, label: "Autogestión", permission: 'self-service' },
+  { href: "/dashboard/products", icon: Package, label: "Productos", permission: 'products' },
+  { href: "/dashboard/redeem", icon: QrCode, label: "Canjear", permission: 'redeem' },
+  { href: "/dashboard/cashbox", icon: Archive, label: "Caja", permission: 'cashbox' },
+  { href: "/dashboard/returns", icon: Undo2, label: "Devoluciones", permission: 'returns' },
 ];
 
-export const adminNavItems = [
-    { href: "/dashboard/users", icon: Users, label: "Usuarios", allowedRoles: ['admin'] },
-    { href: "/dashboard/audit", icon: ClipboardList, label: "Auditoría", allowedRoles: ['admin'] },
+export const adminNavItems: NavItem[] = [
+    { href: "/dashboard/users", icon: Users, label: "Usuarios", permission: 'users' },
+    { href: "/dashboard/audit", icon: ClipboardList, label: "Auditoría", permission: 'audit' },
 ]
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const { role, setMockRole } = useMockAuth();
+  const router = useRouter();
+  const { logout } = useMockAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  }
 
   return (
     <>
@@ -69,7 +74,7 @@ export function SidebarNav() {
       <SidebarContent>
         <SidebarMenu>
           {navItems.map((item) => (
-            <RoleGate key={item.href} allowedRoles={item.allowedRoles}>
+            <PermissionGate key={item.href} requiredPermission={item.permission}>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
@@ -82,10 +87,10 @@ export function SidebarNav() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </RoleGate>
+            </PermissionGate>
           ))}
         </SidebarMenu>
-        <RoleGate allowedRoles={['admin']}>
+        <PermissionGate requiredPermission="users">
             <SidebarSeparator />
             <SidebarMenu>
             {adminNavItems.map((item) => (
@@ -103,17 +108,15 @@ export function SidebarNav() {
                 </SidebarMenuItem>
             ))}
             </SidebarMenu>
-        </RoleGate>
+        </PermissionGate>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton icon={LogOut}>Cerrar Sesión</SidebarMenuButton>
+            <SidebarMenuButton icon={LogOut} onClick={handleLogout}>Cerrar Sesión</SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </>
   );
 }
-
-    

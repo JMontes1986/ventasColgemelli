@@ -1,7 +1,7 @@
 
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, limit } from "firebase/firestore";
-import type { User, NewUser, UserRole } from "@/lib/types";
+import type { User, NewUser, ModulePermission } from "@/lib/types";
 import { mockUsers } from "@/lib/placeholder-data";
 import { addAuditLog } from "./audit-service";
 
@@ -17,7 +17,7 @@ export async function authenticateUser(username: string, password_provided: stri
     }
 
     const userDoc = querySnapshot.docs[0];
-    const userData = userDoc.data() as User;
+    const userData = userDoc.data() as Omit<User, 'id'>;
     
     // In a real app, you should NEVER store or compare plain text passwords.
     // This should be replaced with a secure hashing and comparison mechanism (e.g., bcrypt).
@@ -68,17 +68,15 @@ export async function addSeedUsers(): Promise<void> {
     }
 }
 
-// Function to update a user's role in Firestore
-export async function updateUserRole(userId: string, newRole: UserRole): Promise<void> {
+// Function to update a user's permissions in Firestore
+export async function updateUserPermissions(userId: string, permissions: ModulePermission[]): Promise<void> {
     const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, { role: newRole });
-    // This part is tricky without knowing who the current user is.
-    // In a real app, you'd get the current user from auth state.
-    // For now, we will log it as a system action without a specific user.
+    await updateDoc(userRef, { permissions });
+    
     await addAuditLog({
         userId: 'system', // or the ID of the admin making the change
         userName: 'Sistema', // or the name of the admin
-        action: 'USER_ROLE_CHANGE',
-        details: `Rol del usuario ${userId} cambiado a ${newRole}.`,
+        action: 'USER_ROLE_CHANGE', // Re-using this action type
+        details: `Permisos del usuario ${userId} actualizados.`,
     });
 }

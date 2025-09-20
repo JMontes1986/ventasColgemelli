@@ -49,7 +49,7 @@ export default function SalesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { role, users, isMounted } = useMockAuth();
+  const { currentUser, isMounted } = useMockAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -59,7 +59,7 @@ export default function SalesPage() {
             getProducts(),
             getPurchases(),
         ]);
-        setProducts(fetchedProducts.filter(p => p.stock > 0 && p.isPosAvailable));
+        setProducts(fetchedProducts.filter(p => p.isPosAvailable));
         setPurchases(fetchedPurchases);
     } catch (error) {
         console.error("Error fetching data:", error);
@@ -88,25 +88,22 @@ export default function SalesPage() {
   }, [purchases]);
 
 
-  const availableTickets: Ticket[] = []; // No tickets by default
   const pendingSelfServicePurchases = purchases.filter(p => p.status === 'pending' && !p.sellerId);
 
-  const addToCart = (item: Product | Ticket, type: 'product' | 'ticket') => {
+  const addToCart = (item: Product) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       
-      if (type === 'product') {
-        const product = item as Product;
-        const availableStock = product.stock - (pendingQuantities[product.id] || 0);
+      const product = item as Product;
+      const availableStock = product.stock - (pendingQuantities[product.id] || 0);
 
-        if (availableStock <= 0) {
-            toast({ variant: "destructive", title: "Sin Stock", description: `${product.name} está agotado o reservado.` });
-            return prevCart;
-        }
-         if (existingItem && existingItem.quantity >= availableStock) {
-            toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${product.name}.` });
-            return prevCart;
-        }
+      if (availableStock <= 0) {
+          toast({ variant: "destructive", title: "Sin Stock", description: `${product.name} está agotado o reservado.` });
+          return prevCart;
+      }
+       if (existingItem && existingItem.quantity >= availableStock) {
+          toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${product.name}.` });
+          return prevCart;
       }
       
       if (existingItem) {
@@ -116,9 +113,8 @@ export default function SalesPage() {
             : cartItem
         );
       }
-      const name = type === 'product' ? (item as Product).name : (item as Ticket).uniqueCode;
-      const stock = type === 'product' ? (item as Product).stock : undefined;
-      return [...prevCart, { id: item.id, name: name, price: item.price, quantity: 1, type, stock }];
+      const stock = item.stock;
+      return [...prevCart, { id: item.id, name: item.name, price: item.price, quantity: 1, type: 'product', stock }];
     });
   };
 
@@ -161,7 +157,6 @@ export default function SalesPage() {
     }
     setIsProcessing(true);
 
-    const currentUser = users.find(u => u.role === role);
 
     const newPurchaseData: NewPurchase = {
         date: new Date().toLocaleString('es-CO'),
@@ -188,9 +183,6 @@ export default function SalesPage() {
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const change = customerPayment - subtotal;
-  
-  const allProducts = products;
-  const productsForSale = products.filter(p => p.isPosAvailable);
 
   return (
     <div>
@@ -212,12 +204,11 @@ export default function SalesPage() {
                             <p className="text-muted-foreground p-3">Cargando productos...</p>
                          ) : (
                             <div className="flex flex-col gap-2">
-                                {allProducts.length === 0 ? (
+                                {products.length === 0 ? (
                                     <p className="text-muted-foreground p-3">No hay productos disponibles para la venta.</p>
                                 ) : (
-                                    allProducts.filter(p => p.isPosAvailable).map((product) => {
+                                    products.map((product) => {
                                       const pending = pendingQuantities[product.id] || 0;
-                                      const availableStock = product.stock - pending;
                                       const isSoldOut = product.stock <= 0;
                                       return (
                                         <div key={product.id} className={cn("flex items-center justify-between p-3 bg-muted/50 rounded-lg", isSoldOut && "opacity-50")}>
@@ -246,7 +237,7 @@ export default function SalesPage() {
                                                         <Badge variant="outline">Stock: {product.stock}</Badge>
                                                     </div>
                                                 )}
-                                                <Button onClick={() => addToCart(product, 'product')} disabled={isSoldOut}>
+                                                <Button onClick={() => addToCart(product)} disabled={isSoldOut}>
                                                     Agregar
                                                 </Button>
                                             </div>

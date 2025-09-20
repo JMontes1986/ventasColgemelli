@@ -35,7 +35,7 @@ const statusColors: Record<Purchase['status'], string> = {
 function RedeemPageComponent() {
     const searchParams = useSearchParams();
     const codeFromUrl = searchParams.get('code');
-    const { role, users } = useMockAuth();
+    const { currentUser } = useMockAuth();
 
     const [searchCedula, setSearchCedula] = useState('');
     const [searchCelular, setSearchCelular] = useState('');
@@ -93,13 +93,8 @@ function RedeemPageComponent() {
         }
     }, [codeFromUrl]);
 
-    const getCurrentUser = (): User | undefined => {
-        return users.find(u => u.role === role);
-    }
-
     const handleUpdateStatus = async (purchaseId: string, newStatus: Purchase['status']) => {
         setIsUpdating(true);
-        const currentUser = getCurrentUser();
 
         if (!currentUser) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario actual.' });
