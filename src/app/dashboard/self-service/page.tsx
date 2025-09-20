@@ -78,7 +78,7 @@ export default function SelfServicePage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     loadProducts();
