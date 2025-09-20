@@ -5,7 +5,7 @@ import { Header } from "@/components/dashboard/header";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 import type { ModulePermission } from "@/lib/types";
 import { navItems, adminNavItems } from "@/components/dashboard/sidebar-nav";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 const allNavItems = [...navItems, ...adminNavItems];
@@ -29,11 +29,16 @@ export default function DashboardLayout({
     }
   }, [isMounted, currentUser, router]);
 
-  const accessibleNavItems = allNavItems.filter(item => 
-    currentUser?.permissions?.includes(item.permission)
-  );
+  const accessibleNavItems = useMemo(() => {
+    if (!currentUser) {
+      return [];
+    }
+    return allNavItems.filter(item => 
+      currentUser.permissions?.includes(item.permission)
+    );
+  }, [currentUser]);
 
-  if (!authorized) {
+  if (!authorized || !currentUser) {
     // Puedes mostrar un skeleton/loader aquí
     return <div>Cargando...</div>;
   }
