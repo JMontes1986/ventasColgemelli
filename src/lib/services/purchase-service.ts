@@ -32,19 +32,25 @@ export async function getPurchaseById(id: string): Promise<Purchase | null> {
 // Function to get all purchases for a given cedula from Firestore
 export async function getPurchasesByCedula(cedula: string): Promise<Purchase[]> {
   const purchasesCol = collection(db, 'purchases');
-  const q = query(purchasesCol, where("cedula", "==", cedula), orderBy("date", "desc"));
+  // Remove orderBy from the query to avoid needing a composite index
+  const q = query(purchasesCol, where("cedula", "==", cedula));
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
-  return purchaseList;
+  
+  // Sort the results in application code instead of in the query
+  return purchaseList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 // Function to get all purchases for a given celular from Firestore
 export async function getPurchasesByCelular(celular: string): Promise<Purchase[]> {
   const purchasesCol = collection(db, 'purchases');
-  const q = query(purchasesCol, where("celular", "==", celular), orderBy("date", "desc"));
+   // Remove orderBy from the query to avoid needing a composite index
+  const q = query(purchasesCol, where("celular", "==", celular));
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
-  return purchaseList;
+
+  // Sort the results in application code instead of in the query
+  return purchaseList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 // Function to add a new purchase to Firestore with a custom ID and update stock
