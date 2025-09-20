@@ -70,11 +70,9 @@ export default function SelfServicePage() {
     setIsLoading(true);
     try {
         const fetchedProducts = await getSelfServiceProducts();
-        // Filter products with stock > 0 on the client side
         setProducts(fetchedProducts.filter(p => p.stock > 0));
     } catch (error) {
         console.error("Error fetching products:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los productos." });
     } finally {
         setIsLoading(false);
     }
