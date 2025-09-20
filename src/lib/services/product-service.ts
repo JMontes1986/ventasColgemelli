@@ -15,10 +15,15 @@ export async function getProducts(): Promise<Product[]> {
   return productList;
 }
 
-// Function to get only products marked for self-service
+// Function to get only products marked for self-service with available stock
 export async function getSelfServiceProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
-  const q = query(productsCol, where("isSelfService", "==", true));
+  // Query for products that are marked for self-service AND have stock greater than 0
+  const q = query(
+    productsCol, 
+    where("isSelfService", "==", true),
+    where("stock", ">", 0)
+  );
   const productSnapshot = await getDocs(q);
   const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
   return productList;
