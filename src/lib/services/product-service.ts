@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, runTransaction, increment } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, runTransaction, increment, getDoc } from "firebase/firestore";
 import type { Product, User } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
 
