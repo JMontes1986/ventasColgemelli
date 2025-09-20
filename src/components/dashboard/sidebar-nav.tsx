@@ -54,14 +54,14 @@ export const adminNavItems: NavItem[] = [
 export function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useMockAuth();
+  const { logout, hasPermission } = useMockAuth();
 
   const handleLogout = () => {
     logout();
     router.push('/');
   }
 
-  const hasAdminItems = adminNavItems.some(item => useMockAuth().hasPermission(item.permission));
+  const hasAdminItems = adminNavItems.some(item => hasPermission(item.permission));
 
   return (
     <>
