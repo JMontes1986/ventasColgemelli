@@ -412,12 +412,33 @@ export default function SelfServicePage() {
               Su compra está pendiente. Presente este código en la caja para confirmar el pago y recibir sus productos.
             </DialogDesc>
           </DialogHeader>
-          <div className="py-4 text-center">
-            <p className="text-sm text-muted-foreground">Su código de pago único es:</p>
-            <div className="my-4 p-4 bg-muted rounded-md">
-              <p className="text-3xl font-bold font-mono tracking-widest text-primary">{paymentCode}</p>
+          <div className="py-4 space-y-4">
+            <div className="text-center">
+                <p className="text-sm text-muted-foreground">Su código de pago único es:</p>
+                <div className="my-2 p-4 bg-muted rounded-md">
+                <p className="text-3xl font-bold font-mono tracking-widest text-primary">{paymentCode}</p>
+                </div>
             </div>
-            <p className="text-xs text-muted-foreground">Este código es válido por 30 minutos.</p>
+
+            <div>
+                <h4 className="font-semibold mb-2 text-center">Resumen de la Compra</h4>
+                <div className="max-h-32 overflow-y-auto border rounded-md p-2">
+                    <ul className="text-sm space-y-1">
+                        {cart.map(item => (
+                            <li key={item.id} className="flex justify-between">
+                                <span>{item.name} (x{item.quantity})</span>
+                                <span>{formatCurrency(item.price * item.quantity)}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                 <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t">
+                    <span>Total a Pagar:</span>
+                    <span>{formatCurrency(subtotal)}</span>
+                </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">Este código es válido por 30 minutos.</p>
           </div>
           <Button onClick={closeModal} className="w-full">Entendido</Button>
         </DialogContent>
