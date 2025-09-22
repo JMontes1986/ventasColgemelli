@@ -155,7 +155,11 @@ export default function LoginPage() {
           title: "Inicio de sesión exitoso",
           description: `¡Bienvenido de nuevo, ${authenticatedUser.name}!`,
         });
-        router.push("/dashboard");
+        if (authenticatedUser.role === 'cashier') {
+            router.push("/dashboard/sales");
+        } else {
+            router.push("/dashboard");
+        }
       } else {
         toast({
           variant: "destructive",
@@ -236,4 +240,3 @@ export default function LoginPage() {
     </main>
   );
 }
-
