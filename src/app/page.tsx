@@ -149,6 +149,9 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // Clear user cache to force a re-fetch from Firestore
+      sessionStorage.removeItem("all_users");
+
       const authenticatedUser = await authenticateUser(username, password);
       if (authenticatedUser) {
         login(authenticatedUser);
