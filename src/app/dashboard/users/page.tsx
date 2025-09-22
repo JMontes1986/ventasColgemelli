@@ -167,7 +167,7 @@ export default function UsersPage() {
       }
     }
     loadUsers();
-  }, [toast]);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleUserAdded = (newUser: User) => {
     setUsers(prevUsers => [...prevUsers, newUser]);
