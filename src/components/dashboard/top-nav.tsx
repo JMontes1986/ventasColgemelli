@@ -16,9 +16,6 @@ interface TopNavProps extends React.HTMLAttributes<HTMLElement> {
     navItems: NavItem[];
 }
 
-// Define which items should appear in the top navigation
-const topNavLinks: ModulePermission[] = ['dashboard', 'sales', 'presale'];
-
 export function TopNav({
   className,
   navItems: accessibleNavItems,
@@ -26,15 +23,12 @@ export function TopNav({
 }: TopNavProps) {
   const pathname = usePathname();
 
-  // Filter the accessible items to only include the ones we want in the top nav
-  const topNavItems = accessibleNavItems.filter(item => topNavLinks.includes(item.permission));
-
   return (
     <nav
       className={cn("flex items-center space-x-4 lg:space-x-6", className)}
       {...props}
     >
-      {topNavItems.map((item) => (
+      {accessibleNavItems.map((item) => (
         <Link
           key={item.href}
           href={item.href}
