@@ -18,18 +18,27 @@ import {
   TableBody,
   TableCell,
   TableRow,
+  TableHeader,
+  TableHead,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus } from "lucide-react";
+import { Trash2, Plus, Minus, Search, ExternalLink } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
-import { addPreSalePurchase, type NewPurchase } from '@/lib/services/purchase-service';
+import { addPreSalePurchase, getPurchasesByCedula, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useMockAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import Link from 'next/link';
 
 type CartItem = {
   id: string;
@@ -37,6 +46,15 @@ type CartItem = {
   price: number;
   quantity: number;
   stock?: number;
+};
+
+const statusTranslations: Record<Purchase['status'], string> = {
+    pending: 'Pendiente',
+    paid: 'Pagado',
+    delivered: 'Entregado',
+    cancelled: 'Cancelado',
+    'pre-sale': 'Preventa Pendiente',
+    'pre-sale-confirmed': 'Preventa Confirmada',
 };
 
 export default function PreSalePage() {
@@ -48,21 +66,38 @@ export default function PreSalePage() {
   const { currentUser } = useMockAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const loadProducts = useCallback(async () => {
+  // For confirmation dialog
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+  const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
+
+  // For history/search
+  const [recentPreSales, setRecentPreSales] = useState<Purchase[]>([]);
+  const [searchCedula, setSearchCedula] = useState('');
+  const [searchResults, setSearchResults] = useState<Purchase[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-        const fetchedProducts = await getProducts();
+        const [fetchedProducts, allPurchases] = await Promise.all([
+          getProducts(),
+          getPurchases()
+        ]);
         setProducts(fetchedProducts);
+        const presales = allPurchases
+          .filter(p => p.status === 'pre-sale' || p.status === 'pre-sale-confirmed')
+          .slice(0, 5);
+        setRecentPreSales(presales);
     } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("Error fetching data:", error);
     } finally {
         setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    loadData();
+  }, [loadData]);
 
   const addToCart = (item: Product) => {
     setCart((prevCart) => {
@@ -113,18 +148,21 @@ export default function PreSalePage() {
     const newPreSaleData: NewPurchase = {
         date: new Date().toLocaleString('es-CO'),
         total: subtotal,
-        items: cart.map(({ stock, ...item }) => item), // Remove stock from saved items
+        items: cart.map(({ stock, ...item }) => item),
         cedula: customerIdentifier,
-        celular: 'N/A', // Not required for pre-sales
+        celular: 'N/A', 
         sellerId: currentUser?.id,
         sellerName: currentUser?.name,
         status: 'pre-sale',
     };
 
     try {
-        await addPreSalePurchase(newPreSaleData);
+        const addedPurchase = await addPreSalePurchase(newPreSaleData);
+        setLastPurchase(addedPurchase);
+        setIsConfirmationOpen(true);
         toast({ title: "Preventa Exitosa", description: "La preventa ha sido registrada correctamente." });
         clearCart();
+        loadData(); // Refresh recent presales
     } catch (error) {
         console.error("Error creating pre-sale:", error);
         toast({ variant: "destructive", title: "Error en la Preventa", description: (error as Error).message || "No se pudo registrar la preventa." });
@@ -133,7 +171,26 @@ export default function PreSalePage() {
     }
   }
 
+  const handleSearchHistory = async () => {
+    if (!searchCedula) {
+        toast({ variant: "destructive", title: "Error", description: "Por favor, ingrese una cédula o código para buscar." });
+        return;
+    }
+    setIsHistoryLoading(true);
+    try {
+        const history = await getPurchasesByCedula(searchCedula);
+        setSearchResults(history.filter(p => p.status.startsWith('pre-sale')));
+    } catch (error) {
+        console.error("Error fetching purchase history:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo cargar el historial de preventas." });
+    } finally {
+        setIsHistoryLoading(false);
+    }
+  }
+
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+  const displayHistory = searchResults.length > 0 ? searchResults : recentPreSales;
 
   return (
     <div>
@@ -184,7 +241,7 @@ export default function PreSalePage() {
             </CardContent>
         </Card>
 
-        <div>
+        <div className="space-y-8">
           <Card className="bg-blue-950 text-white lg:sticky top-20">
             <CardHeader>
               <CardTitle>Carrito de Preventa</CardTitle>
@@ -263,8 +320,94 @@ export default function PreSalePage() {
                 </Button>
             </CardFooter>
           </Card>
+          
+          <Card>
+            <CardHeader>
+                <CardTitle>Consultar Preventas</CardTitle>
+                <CardDescription>Busque por cédula o vea las preventas más recientes.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center gap-2 mb-4">
+                    <Input 
+                        placeholder="Buscar por cédula..."
+                        value={searchCedula}
+                        onChange={e => setSearchCedula(e.target.value)}
+                    />
+                    <Button onClick={handleSearchHistory} disabled={isHistoryLoading}>
+                        <Search className="mr-2 h-4 w-4" />
+                        {isHistoryLoading ? 'Buscando...' : 'Buscar'}
+                    </Button>
+                </div>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Código</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Total</TableHead>
+                            <TableHead className="text-right">Acción</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading || isHistoryLoading ? (
+                           <TableRow><TableCell colSpan={4} className="h-24 text-center">Cargando...</TableCell></TableRow>
+                        ) : displayHistory.length === 0 ? (
+                            <TableRow><TableCell colSpan={4} className="h-24 text-center">No se encontraron preventas.</TableCell></TableRow>
+                        ) : (
+                            displayHistory.map(ps => (
+                                <TableRow key={ps.id}>
+                                    <TableCell className="font-mono">{ps.id}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className={cn(ps.status === 'pre-sale' ? 'text-purple-700 border-purple-300' : 'text-teal-700 border-teal-300')}>{statusTranslations[ps.status]}</Badge>
+                                    </TableCell>
+                                    <TableCell>{formatCurrency(ps.total)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button asChild size="sm" variant="outline">
+                                            <Link href={`/dashboard/redeem?code=${ps.id}`}>
+                                                Ver / Gestionar <ExternalLink className="ml-2 h-3 w-3" />
+                                            </Link>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
+      
+      <Dialog open={isConfirmationOpen} onOpenChange={setIsConfirmationOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>¡Preventa Registrada!</DialogTitle>
+                <CardDescription>Entregue este código al padre de familia para confirmar y pagar la preventa en caja.</CardDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+                 <div className="text-center">
+                    <p className="text-sm text-muted-foreground">Código de Preventa Único:</p>
+                    <div className="my-2 p-4 bg-muted rounded-md">
+                    <p className="text-2xl sm:text-3xl font-bold font-mono tracking-widest text-primary">{lastPurchase?.id}</p>
+                    </div>
+                </div>
+                <div>
+                    <h4 className="font-semibold mb-2 text-center">Resumen de la Compra</h4>
+                    <ul className="text-sm space-y-1">
+                        {lastPurchase?.items.map(item => (
+                            <li key={item.id} className="flex justify-between">
+                                <span>{item.name} (x{item.quantity})</span>
+                                <span>{formatCurrency(item.price * item.quantity)}</span>
+                            </li>
+                        ))}
+                    </ul>
+                     <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t">
+                        <span>Total:</span>
+                        <span>{formatCurrency(lastPurchase?.total ?? 0)}</span>
+                    </div>
+                </div>
+            </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

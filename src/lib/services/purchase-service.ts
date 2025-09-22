@@ -148,7 +148,7 @@ export async function addPreSalePurchase(purchase: NewPurchase): Promise<Purchas
   const counterRef = doc(db, "counters", "preSaleCounter");
 
   const firstItemInitial = purchase.items.length > 0 
-    ? purchase.items[0].name.charAt(0).toUpperCase()
+    ? purchase.items[0].name.charAt(0).toUpperCase().replace(/[^A-Z]/g, 'X')
     : 'X';
   
   try {
