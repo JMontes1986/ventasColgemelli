@@ -71,7 +71,6 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       // 1. READ phase: Read all necessary documents first.
       const productDocs = await Promise.all(
         purchase.items
-          .filter(item => item.type === 'product')
           .map(item => transaction.get(doc(db, 'products', item.id)))
       );
       
@@ -83,7 +82,7 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       const stockUpdates: { ref: DocumentReference, newStock: number }[] = [];
       for (let i = 0; i < productDocs.length; i++) {
         const productDoc = productDocs[i];
-        const item = purchase.items.filter(item => item.type === 'product')[i];
+        const item = purchase.items[i];
         
         if (!productDoc.exists()) {
           throw new Error(`Producto con ID ${item.id} no encontrado.`);
@@ -124,7 +123,7 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       // Create the new purchase document
       const purchaseRef = doc(db, 'purchases', generatedId);
       // Ensure all items have the 'returned' flag set to false initially
-      const itemsToSave = purchase.items.map(({ type, stock, ...item}) => ({...item, returned: false }));
+      const itemsToSave = purchase.items.map(({...item}) => ({...item, returned: false }));
       
       // If purchase comes from POS (sellerId is present), status is 'paid'. Otherwise, 'pending'.
       const status: PurchaseStatus = purchase.sellerId ? 'paid' : 'pending';
@@ -142,6 +141,46 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
     throw error;
   }
 }
+
+
+// Function to add a new pre-sale purchase to Firestore (no stock check)
+export async function addPreSalePurchase(purchase: NewPurchase): Promise<Purchase> {
+  const counterRef = doc(db, "counters", "preSaleCounter");
+
+  const firstItemInitial = purchase.items.length > 0 
+    ? purchase.items[0].name.charAt(0).toUpperCase()
+    : 'X';
+  
+  try {
+    const newPurchaseId = await runTransaction(db, async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+      
+      let newCount = 1;
+      if (counterDoc.exists()) {
+        newCount = counterDoc.data().count + 1;
+      }
+      
+      const formattedCount = String(newCount).padStart(4, '0');
+      const generatedId = `PV${firstItemInitial}${formattedCount}`;
+
+      transaction.set(counterRef, { count: newCount }, { merge: true });
+
+      const purchaseRef = doc(db, 'purchases', generatedId);
+      const itemsToSave = purchase.items.map(item => ({...item, returned: false}));
+      
+      const purchaseDataToSave = { ...purchase, items: itemsToSave, status: 'pre-sale' };
+      transaction.set(purchaseRef, purchaseDataToSave);
+
+      return generatedId;
+    });
+    
+    return { id: newPurchaseId, ...purchase };
+  } catch (error) {
+    console.error("Pre-sale transaction failed: ", error);
+    throw error;
+  }
+}
+
 
 // Function to update an existing purchase (e.g., to mark items as returned)
 export async function updatePurchase(purchaseId: string, data: Partial<Purchase>): Promise<void> {
@@ -246,5 +285,3 @@ export async function updatePendingPurchase(purchaseId: string, newCart: Omit<Ca
     });
   });
 }
-
-    

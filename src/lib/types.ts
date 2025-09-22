@@ -5,6 +5,7 @@ export type UserRole = 'admin' | 'cashier' | 'seller' | 'auditor';
 export type ModulePermission =
   | 'dashboard'
   | 'sales'
+  | 'presale'
   | 'self-service'
   | 'products'
   | 'redeem'
@@ -100,12 +101,10 @@ export type CartItem = {
   name: string;
   price: number;
   quantity: number;
-  type: 'product' | 'ticket';
   returned?: boolean; // Flag to indicate if the item has been returned
-  stock?: number;
 };
 
-export type PurchaseStatus = 'pending' | 'paid' | 'cancelled' | 'delivered';
+export type PurchaseStatus = 'pending' | 'paid' | 'cancelled' | 'delivered' | 'pre-sale';
 
 
 // Represents a completed purchase record in Firestore
@@ -113,7 +112,7 @@ export type Purchase = {
   id: string; // Firestore document ID
   date: string;
   total: number;
-  items: Omit<CartItem, 'type' | 'stock' | 'returned'>[];
+  items: CartItem[];
   cedula: string;
   celular: string;
   sellerId?: string; // ID of the user who made the sale in POS
@@ -140,5 +139,3 @@ export type Return = {
 
 // Type for creating a new return record
 export type NewReturn = Omit<Return, 'id'>;
-
-    

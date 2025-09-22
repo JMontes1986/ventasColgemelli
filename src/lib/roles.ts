@@ -5,6 +5,7 @@ const permissions: Record<UserRole, ModulePermission[]> = {
   admin: [
     'dashboard',
     'sales',
+    'presale',
     'self-service',
     'products',
     'redeem',
@@ -16,6 +17,7 @@ const permissions: Record<UserRole, ModulePermission[]> = {
   cashier: [
     'dashboard',
     'sales',
+    'presale',
     'redeem',
     'cashbox',
     'returns',
@@ -23,6 +25,7 @@ const permissions: Record<UserRole, ModulePermission[]> = {
   seller: [
     'dashboard',
     'sales',
+    'presale',
     'redeem',
   ],
   auditor: [
