@@ -8,36 +8,59 @@ import { addAuditLog } from "./audit-service";
 export type NewProduct = Omit<Product, 'id' | 'position'>;
 export type UpdatableProduct = Partial<Omit<Product, 'id'>>;
 
-// Function to get all products from Firestore, sorted by position
+// Function to get all products from Firestore, sorted by position client-side
 export async function getProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
-  const q = query(productsCol, orderBy("position", "asc"));
-  const productSnapshot = await getDocs(q);
-  const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPosAvailable: doc.data().isPosAvailable ?? true } as Product));
+  // We fetch without ordering first, to avoid issues with missing fields
+  const productSnapshot = await getDocs(productsCol);
+  const productList = productSnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data(),
+      isPosAvailable: doc.data().isPosAvailable ?? true,
+      position: doc.data().position ?? 0, // Ensure position exists
+  } as Product));
+  
+  // Sort client-side for robustness
+  productList.sort((a, b) => a.position - b.position);
+
   return productList;
 }
 
 // Function to get only products marked for self-service
 export async function getSelfServiceProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
-  // Query for products that are marked for self-service and sort them
+  // Query for products that are marked for self-service
   const q = query(
     productsCol, 
-    where("isSelfService", "==", true),
-    orderBy("position", "asc")
+    where("isSelfService", "==", true)
   );
   const productSnapshot = await getDocs(q);
-  const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+  const productList = productSnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data(),
+      position: doc.data().position ?? 0,
+  } as Product));
+
+  // Sort client-side
+  productList.sort((a, b) => a.position - b.position);
+
   return productList;
 }
 
 // Function to add a new product to Firestore
 export async function addProduct(product: NewProduct): Promise<Product> {
   const productsCol = collection(db, 'products');
+  
+  // Get current number of products to determine the new position
   const snapshot = await getDocs(productsCol);
-  const newPosition = snapshot.size; // Position will be the current number of products
+  const newPosition = snapshot.size;
 
-  const docRef = await addDoc(productsCol, { ...product, restockCount: 0, preSaleSold: 0, position: newPosition });
+  const docRef = await addDoc(productsCol, { 
+      ...product, 
+      restockCount: 0, 
+      preSaleSold: 0, 
+      position: newPosition, // Explicitly set position
+  });
   return { id: docRef.id, ...product, restockCount: 0, preSaleSold: 0, position: newPosition };
 }
 

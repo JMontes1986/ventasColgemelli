@@ -62,7 +62,7 @@ export async function addSeedUsers(): Promise<void> {
         const permissions = getPermissionsForRole(user.role);
         // Use username as the document ID for predictability
         const userRef = doc(db, 'users', user.username);
-        return setDoc(userRef, { ...user, permissions });
+        return setDoc(userRef, { ...user, permissions, password: 'password123' });
     });
     await Promise.all(promises);
 }
@@ -79,4 +79,3 @@ export async function updateUserPermissions(userId: string, permissions: ModuleP
         details: `Permisos del usuario ${userId} actualizados.`,
     });
 }
-
