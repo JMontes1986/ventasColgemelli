@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Product, Purchase } from "@/lib/types";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, Search, ExternalLink } from "lucide-react";
+import { Trash2, Plus, Minus, Search, ExternalLink, Printer } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
 import { addPreSalePurchase, getPurchasesByCedula, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
@@ -37,8 +37,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import Link from 'next/link';
+import { Logo } from '@/components/icons';
 
 type CartItem = {
   id: string;
@@ -69,6 +71,7 @@ export default function PreSalePage() {
   // For confirmation dialog
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
+  const confirmationDialogRef = useRef<HTMLDivElement>(null);
 
   // For history/search
   const [recentPreSales, setRecentPreSales] = useState<Purchase[]>([]);
@@ -188,6 +191,10 @@ export default function PreSalePage() {
     }
   }
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const displayHistory = searchResults.length > 0 ? searchResults : recentPreSales;
@@ -244,7 +251,7 @@ export default function PreSalePage() {
         </div>
 
         <div className="lg:col-span-1">
-            <div className="lg:sticky top-20">
+            <div className="lg:sticky top-20 z-10">
                 <Card className="bg-blue-950 text-white">
                     <CardHeader>
                     <CardTitle>Carrito de Preventa</CardTitle>
@@ -386,34 +393,45 @@ export default function PreSalePage() {
       </div>
       
       <Dialog open={isConfirmationOpen} onOpenChange={setIsConfirmationOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>¡Preventa Registrada!</DialogTitle>
-                <CardDescription>Entregue este código al padre de familia para confirmar y pagar la preventa en caja.</CardDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-                 <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Código de Preventa Único:</p>
-                    <div className="my-2 p-4 bg-muted rounded-md">
-                    <p className="text-2xl sm:text-3xl font-bold font-mono tracking-widest text-primary">{lastPurchase?.id}</p>
+        <DialogContent className="printable-area">
+            <div ref={confirmationDialogRef}>
+                <DialogHeader>
+                    <div className="flex justify-center mb-4">
+                        <Logo className="h-auto w-48" />
                     </div>
-                </div>
-                <div>
-                    <h4 className="font-semibold mb-2 text-center">Resumen de la Compra</h4>
-                    <ul className="text-sm space-y-1">
-                        {lastPurchase?.items.map(item => (
-                            <li key={item.id} className="flex justify-between">
-                                <span>{item.name} (x{item.quantity})</span>
-                                <span>{formatCurrency(item.price * item.quantity)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                     <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t">
-                        <span>Total:</span>
-                        <span>{formatCurrency(lastPurchase?.total ?? 0)}</span>
+                    <DialogTitle className="text-center text-2xl">¡Preventa Registrada!</DialogTitle>
+                    <CardDescription className="text-center">Entregue este comprobante al padre de familia para confirmar y pagar la preventa en caja.</CardDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Código de Preventa Único:</p>
+                        <div className="my-2 p-4 bg-muted rounded-md">
+                        <p className="text-2xl sm:text-3xl font-bold font-mono tracking-widest text-primary">{lastPurchase?.id}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold mb-2 text-center">Resumen de la Compra</h4>
+                        <ul className="text-sm space-y-1">
+                            {lastPurchase?.items.map(item => (
+                                <li key={item.id} className="flex justify-between">
+                                    <span>{item.name} (x{item.quantity})</span>
+                                    <span>{formatCurrency(item.price * item.quantity)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t">
+                            <span>Total:</span>
+                            <span>{formatCurrency(lastPurchase?.total ?? 0)}</span>
+                        </div>
                     </div>
                 </div>
             </div>
+            <DialogFooter className="print-hide">
+                <Button onClick={handlePrint} variant="outline" className="w-full">
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimir Comprobante
+                </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
