@@ -242,7 +242,7 @@ export default function PreSalePage() {
         </Card>
 
         <div className="space-y-8">
-          <Card className="bg-blue-950 text-white lg:sticky top-20">
+          <Card className="bg-blue-950 text-white lg:sticky top-20 z-10">
             <CardHeader>
               <CardTitle>Carrito de Preventa</CardTitle>
             </CardHeader>
