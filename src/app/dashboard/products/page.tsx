@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store, Plus, PackagePlus } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store, Plus, PackagePlus, ClipboardCheck } from "lucide-react";
 import { PermissionGate } from "@/components/permission-gate";
 import Image from "next/image";
 import { mockProducts } from "@/lib/placeholder-data";
@@ -447,10 +447,14 @@ export default function ProductsPage() {
                         Stock: {product.stock}
                         </span>
                     </div>
-                     <div className="flex justify-start items-center mt-2">
+                     <div className="flex justify-start items-center mt-2 gap-2">
                          <Badge variant="outline" className="flex items-center gap-1">
                             <PackagePlus className="h-3 w-3" />
                             <span>Reintegros: {product.restockCount || 0}</span>
+                        </Badge>
+                        <Badge variant="outline" className="flex items-center gap-1 border-yellow-400 text-yellow-700">
+                            <ClipboardCheck className="h-3 w-3" />
+                            <span>Preventas: {product.preSaleSold || 0}</span>
                         </Badge>
                     </div>
                 </CardContent>
@@ -461,5 +465,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-
-    

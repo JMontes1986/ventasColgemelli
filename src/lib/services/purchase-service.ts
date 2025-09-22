@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment } from "firebase/firestore";
-import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem } from "@/lib/types";
+import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem, User } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 
@@ -163,6 +163,12 @@ export async function addPreSalePurchase(purchase: NewPurchase): Promise<Purchas
       const formattedCount = String(newCount).padStart(4, '0');
       const generatedId = `PV${firstItemInitial}${formattedCount}`;
 
+      // Update product preSaleSold counts
+      for (const item of purchase.items) {
+          const productRef = doc(db, 'products', item.id);
+          transaction.update(productRef, { preSaleSold: increment(item.quantity) });
+      }
+
       transaction.set(counterRef, { count: newCount }, { merge: true });
 
       const purchaseRef = doc(db, 'purchases', generatedId);
@@ -284,4 +290,34 @@ export async function updatePendingPurchase(purchaseId: string, newCart: Omit<Ca
       date: new Date().toLocaleString('es-CO'), // Update date to reflect modification time
     });
   });
+}
+
+export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUser: User): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+        const purchaseRef = doc(db, "purchases", purchaseId);
+        const purchaseDoc = await transaction.get(purchaseRef);
+
+        if (!purchaseDoc.exists() || purchaseDoc.data().status !== 'pre-sale') {
+            throw new Error("Preventa no encontrada o ya ha sido confirmada.");
+        }
+
+        const purchaseData = purchaseDoc.data() as Purchase;
+
+        // Increase stock for each item in the pre-sale
+        for (const item of purchaseData.items) {
+            const productRef = doc(db, "products", item.id);
+            transaction.update(productRef, { stock: increment(item.quantity) });
+        }
+
+        // Update purchase status
+        transaction.update(purchaseRef, { status: "pre-sale-confirmed" });
+        
+        // Log the confirmation in audit
+        await addAuditLog({
+            userId: currentUser.id,
+            userName: currentUser.name,
+            action: 'STOCK_RESTOCK', // Reusing this action
+            details: `Preventa ${purchaseId} confirmada. Stock actualizado.`,
+        });
+    });
 }

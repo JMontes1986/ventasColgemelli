@@ -93,6 +93,7 @@ export type Product = {
     isSelfService: boolean;
     isPosAvailable: boolean;
     restockCount?: number;
+    preSaleSold?: number;
 };
 
 // Represents an item in the shopping cart, stored within a Purchase
@@ -104,7 +105,7 @@ export type CartItem = {
   returned?: boolean; // Flag to indicate if the item has been returned
 };
 
-export type PurchaseStatus = 'pending' | 'paid' | 'cancelled' | 'delivered' | 'pre-sale';
+export type PurchaseStatus = 'pending' | 'paid' | 'cancelled' | 'delivered' | 'pre-sale' | 'pre-sale-confirmed';
 
 
 // Represents a completed purchase record in Firestore

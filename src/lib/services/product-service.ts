@@ -32,8 +32,8 @@ export async function getSelfServiceProducts(): Promise<Product[]> {
 // Function to add a new product to Firestore
 export async function addProduct(product: NewProduct): Promise<Product> {
   const productsCol = collection(db, 'products');
-  const docRef = await addDoc(productsCol, { ...product, restockCount: 0 });
-  return { id: docRef.id, ...product, restockCount: 0 };
+  const docRef = await addDoc(productsCol, { ...product, restockCount: 0, preSaleSold: 0 });
+  return { id: docRef.id, ...product, restockCount: 0, preSaleSold: 0 };
 }
 
 // Function to add a product with a specific ID (for seeding)
@@ -48,6 +48,7 @@ export async function addProductWithId(product: Product): Promise<void> {
         isSelfService: product.isSelfService ?? false,
         isPosAvailable: product.isPosAvailable ?? true,
         restockCount: product.restockCount || 0,
+        preSaleSold: product.preSaleSold || 0,
     });
 }
 
@@ -82,5 +83,3 @@ export async function increaseProductStock(productId: string, quantity: number, 
     
     await updateDoc(productRef, updates);
 }
-
-    

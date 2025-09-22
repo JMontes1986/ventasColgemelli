@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Info, CheckCircle, TicketCheck, AlertTriangle, CreditCard } from "lucide-react";
-import { getPurchasesByCedula, getPurchaseById, getPurchasesByCelular, updatePurchase } from '@/lib/services/purchase-service';
+import { Search, Info, CheckCircle, TicketCheck, AlertTriangle, CreditCard, PackagePlus } from "lucide-react";
+import { getPurchasesByCedula, getPurchaseById, getPurchasesByCelular, updatePurchase, confirmPreSaleAndUpdateStock } from '@/lib/services/purchase-service';
 import type { Purchase, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -23,6 +23,8 @@ const statusTranslations: Record<Purchase['status'], string> = {
     paid: 'Pagado',
     delivered: 'Entregado',
     cancelled: 'Cancelado',
+    'pre-sale': 'Preventa Pendiente',
+    'pre-sale-confirmed': 'Preventa Confirmada',
 };
 
 const statusColors: Record<Purchase['status'], string> = {
@@ -30,6 +32,8 @@ const statusColors: Record<Purchase['status'], string> = {
     paid: 'bg-blue-500/20 text-blue-700',
     delivered: 'bg-green-500/20 text-green-700',
     cancelled: 'bg-red-500/20 text-red-700',
+    'pre-sale': 'bg-purple-500/20 text-purple-700',
+    'pre-sale-confirmed': 'bg-teal-500/20 text-teal-700',
 };
 
 function RedeemPageComponent() {
@@ -103,7 +107,12 @@ function RedeemPageComponent() {
         }
 
         try {
-            await updatePurchase(purchaseId, { status: newStatus });
+            if (newStatus === 'pre-sale-confirmed') {
+                await confirmPreSaleAndUpdateStock(purchaseId, currentUser);
+            } else {
+                await updatePurchase(purchaseId, { status: newStatus });
+            }
+
             setSearchResults(prev => prev.map(p => p.id === purchaseId ? { ...p, status: newStatus } : p));
             toast({
                 title: 'Éxito',
@@ -125,7 +134,7 @@ function RedeemPageComponent() {
             toast({
                 variant: 'destructive',
                 title: 'Error de Actualización',
-                description: 'No se pudo actualizar el estado de la compra.'
+                description: (error as Error).message || 'No se pudo actualizar el estado de la compra.'
             });
         } finally {
             setIsUpdating(false);
@@ -134,6 +143,28 @@ function RedeemPageComponent() {
 
     const renderActionButton = (purchase: Purchase) => {
         switch (purchase.status) {
+            case 'pre-sale':
+                return (
+                    <Button
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                        onClick={() => handleUpdateStatus(purchase.id, 'pre-sale-confirmed')}
+                        disabled={isUpdating}
+                    >
+                        <PackagePlus className="mr-2 h-4 w-4" />
+                        {isUpdating ? 'Confirmando...' : 'Confirmar Preventa y Añadir Stock'}
+                    </Button>
+                );
+             case 'pre-sale-confirmed':
+                return (
+                     <Button 
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        onClick={() => handleUpdateStatus(purchase.id, 'paid')}
+                        disabled={isUpdating}
+                    >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        {isUpdating ? 'Confirmando...' : 'Confirmar Pago'}
+                    </Button>
+                );
             case 'pending':
                 return (
                     <Button 
