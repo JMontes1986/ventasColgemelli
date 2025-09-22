@@ -4,13 +4,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { ModulePermission } from "@/lib/types";
-
-export type NavItem = {
-  href: string;
-  label: string;
-  permission: ModulePermission;
-};
+import type { NavItem } from "./sidebar-nav";
 
 interface TopNavProps extends React.HTMLAttributes<HTMLElement> {
     navItems: NavItem[];
