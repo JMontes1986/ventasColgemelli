@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Gem, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authenticateUser, addUser } from "@/lib/services/user-service";
 import { useMockAuth } from "@/hooks/use-mock-auth";
@@ -29,6 +29,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Logo } from "@/components/icons";
 
 function CreateUserForm({ onUserCreated }: { onUserCreated: () => void }) {
   const { toast } = useToast();
@@ -191,11 +192,8 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-background p-4" key={key}>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mb-4 flex items-center justify-center gap-3 text-primary">
-            <Gem className="h-10 w-10" />
-            <h1 className="font-headline text-3xl font-bold">
-              Ventas ColGemelli
-            </h1>
+          <div className="mb-4 flex items-center justify-center">
+            <Logo />
           </div>
           <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
           <CardDescription>

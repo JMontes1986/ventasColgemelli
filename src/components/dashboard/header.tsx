@@ -61,7 +61,7 @@ export function Header({ navItems }: { navItems: NavItem[] }) {
                             href="/dashboard"
                             className="flex items-center gap-2 text-lg font-semibold"
                         >
-                            <Logo className="h-6 w-6" />
+                            <Logo className="h-auto w-24" />
                             <span className="sr-only">ColGemelli</span>
                         </Link>
                         {navItems.map((item) => (
@@ -81,8 +81,7 @@ export function Header({ navItems }: { navItems: NavItem[] }) {
             </Sheet>
         </div>
         <Link href="/dashboard" className="hidden items-center gap-2 font-semibold md:flex">
-          <Logo className="h-6 w-6" />
-          <span className="">ColGemelli</span>
+          <Logo className="h-auto w-32" />
         </Link>
       </div>
 
