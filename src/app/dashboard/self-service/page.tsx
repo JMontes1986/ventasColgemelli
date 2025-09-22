@@ -264,7 +264,7 @@ export default function SelfServicePage() {
 
                 return (
                   <Card key={product.id} className={cn("overflow-hidden group", isSoldOut && "opacity-50")}>
-                    <div className={cn("aspect-square relative", !isSoldOut && "cursor-pointer")} onClick={() => !isSoldOut && !hasReachedLimit && addToCart(product)}>
+                    <div className={cn("relative flex justify-center pt-4", !isSoldOut && "cursor-pointer")} onClick={() => !isSoldOut && !hasReachedLimit && addToCart(product)}>
                       <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
                           {quantityInCart > 0 && (
                             <div className="bg-accent text-accent-foreground h-8 w-8 rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
@@ -278,11 +278,11 @@ export default function SelfServicePage() {
                       <Image
                         src={product.imageUrl}
                         alt={product.name}
-                        fill
-                        className="object-cover transition-transform group-hover:scale-105"
+                        width={200}
+                        height={200}
+                        className="object-cover rounded-md transition-transform group-hover:scale-105"
                         data-ai-hint={product.imageHint}
                       />
-                      <div className="absolute inset-0 bg-black/20" />
                        {isSoldOut && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                           <Badge variant="destructive" className="text-lg">Agotado</Badge>
@@ -527,3 +527,5 @@ export default function SelfServicePage() {
     </div>
   );
 }
+
+    

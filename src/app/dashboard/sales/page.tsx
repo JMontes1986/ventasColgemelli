@@ -257,7 +257,8 @@ export default function SalesPage() {
                                                    <Image 
                                                         src={product.imageUrl}
                                                         alt={product.name}
-                                                        fill
+                                                        width={200}
+                                                        height={200}
                                                         className="object-cover rounded-md"
                                                     />
                                                 </div>
@@ -459,3 +460,5 @@ export default function SalesPage() {
     </div>
   );
 }
+
+    

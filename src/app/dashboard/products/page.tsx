@@ -412,15 +412,15 @@ export default function ProductsPage() {
                         </DropdownMenu>
                     </div>
                 </PermissionGate>
-                <div className="aspect-square relative">
-                <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    className="object-cover transition-transform group-hover:scale-105"
-                    data-ai-hint={product.imageHint}
-                />
-                <div className="absolute inset-0 bg-black/20" />
+                <div className="relative flex justify-center pt-4">
+                    <Image
+                        src={product.imageUrl}
+                        alt={product.name}
+                        width={200}
+                        height={200}
+                        className="object-cover rounded-md transition-transform group-hover:scale-105"
+                        data-ai-hint={product.imageHint}
+                    />
                 </div>
 
                 <CardContent className="p-4">
@@ -461,3 +461,5 @@ export default function ProductsPage() {
     </div>
   );
 }
+
+    
