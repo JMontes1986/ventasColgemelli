@@ -1,5 +1,4 @@
 
-
 export type UserRole = 'admin' | 'cashier' | 'seller' | 'auditor';
 
 export type ModulePermission =

@@ -247,8 +247,8 @@ export default function SelfServicePage() {
   return (
     <div>
       <PageHeader
-        title="Portal de Autogestión"
-        description="Seleccione los productos que desea comprar."
+        title="Portal de Autogestión de Preventa"
+        description="Seleccione los productos que desea comprar por adelantado."
       />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -361,7 +361,7 @@ export default function SelfServicePage() {
                 onClick={handleInitiatePayment}
                 disabled={cart.length === 0 || isProcessing}
               >
-                {isProcessing ? 'Procesando...' : (editingPurchase ? 'Guardar Cambios' : 'Pagar con DaviPlata')}
+                {isProcessing ? 'Procesando...' : (editingPurchase ? 'Guardar Cambios' : 'Generar Código de Pago')}
               </Button>
               <Button variant="destructive" className="w-full text-lg h-12" onClick={clearCart}>
                 {editingPurchase ? 'Cancelar Edición' : 'Vaciar'}
@@ -492,7 +492,7 @@ export default function SelfServicePage() {
           <div className="py-4 space-y-4">
             <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-md border border-yellow-200 dark:border-yellow-800">
                 <p className="text-base font-semibold">
-                    Su compra está pendiente. Recuerda hacer la transferencia en DAVIPLATA al Número <span className="font-bold">320 676 6574</span> y Presenta este código en la caja para confirmar el pago y recibir sus productos.
+                    Su compra está pendiente. Recuerda hacer la transferencia en DAVIPLATA al Número <span className="font-bold">320 676 6574</span> y presenta este código en la caja para confirmar el pago y recibir sus productos.
                 </p>
             </div>
             <div className="text-center">
@@ -527,5 +527,3 @@ export default function SelfServicePage() {
     </div>
   );
 }
-
-    

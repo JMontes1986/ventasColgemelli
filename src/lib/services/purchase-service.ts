@@ -1,5 +1,4 @@
 
-
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem, User } from "@/lib/types";
@@ -125,10 +124,7 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       // Ensure all items have the 'returned' flag set to false initially
       const itemsToSave = purchase.items.map(({...item}) => ({...item, returned: false }));
       
-      // If purchase comes from POS (sellerId is present), status is 'paid'. Otherwise, 'pending'.
-      const status: PurchaseStatus = purchase.sellerId ? 'paid' : 'pending';
-
-      const purchaseDataToSave = { ...purchase, items: itemsToSave, status };
+      const purchaseDataToSave = { ...purchase, items: itemsToSave };
       transaction.set(purchaseRef, purchaseDataToSave);
 
       return generatedId;

@@ -179,6 +179,7 @@ export default function SalesPage() {
         celular: 'N/A',
         sellerId: currentUser?.id,
         sellerName: currentUser?.name,
+        status: 'paid', // POS sales are directly paid
     };
 
     try {
@@ -460,5 +461,3 @@ export default function SalesPage() {
     </div>
   );
 }
-
-    
