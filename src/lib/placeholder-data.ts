@@ -19,7 +19,7 @@ export const mockCashboxSessions: CashboxSession[] = [];
 
 export const mockAuditLogs: AuditLog[] = [];
 
-export const mockProducts: Product[] = [
+export const mockProducts: Omit<Product, 'position'>[] = [
     { id: 'prod-1', name: 'Carne Asada', price: 12.50, stock: 50, imageUrl: `https://picsum.photos/seed/CarneAsada/400/400`, imageHint: 'grilled meat', isSelfService: true, isPosAvailable: true, restockCount: 0 },
     { id: 'prod-2', name: 'Lechona', price: 15.00, stock: 30, imageUrl: `https://picsum.photos/seed/Lechona/400/400`, imageHint: 'roast pork', isSelfService: true, isPosAvailable: true, restockCount: 0 },
     { id: 'prod-3', name: 'Frijoles con Garra', price: 10.00, stock: 60, imageUrl: `https://picsum.photos/seed/FrijolesconGarra/400/400`, imageHint: 'bean stew', isSelfService: false, isPosAvailable: true, restockCount: 0 },

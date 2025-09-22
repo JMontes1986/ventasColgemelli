@@ -94,6 +94,7 @@ export type Product = {
     isPosAvailable: boolean;
     restockCount?: number;
     preSaleSold?: number;
+    position: number;
 };
 
 // Represents an item in the shopping cart, stored within a Purchase

@@ -1,17 +1,18 @@
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, runTransaction, increment, getDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, runTransaction, increment, getDoc, writeBatch, orderBy } from "firebase/firestore";
 import type { Product, User } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
 
 // Type for creating a new product, ID is optional as Firestore will generate it
-export type NewProduct = Omit<Product, 'id'>;
-export type UpdatableProduct = Partial<NewProduct>;
+export type NewProduct = Omit<Product, 'id' | 'position'>;
+export type UpdatableProduct = Partial<Omit<Product, 'id'>>;
 
-// Function to get all products from Firestore
+// Function to get all products from Firestore, sorted by position
 export async function getProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
-  const productSnapshot = await getDocs(productsCol);
+  const q = query(productsCol, orderBy("position", "asc"));
+  const productSnapshot = await getDocs(q);
   const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPosAvailable: doc.data().isPosAvailable ?? true } as Product));
   return productList;
 }
@@ -19,10 +20,11 @@ export async function getProducts(): Promise<Product[]> {
 // Function to get only products marked for self-service
 export async function getSelfServiceProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
-  // Query for products that are marked for self-service
+  // Query for products that are marked for self-service and sort them
   const q = query(
     productsCol, 
-    where("isSelfService", "==", true)
+    where("isSelfService", "==", true),
+    orderBy("position", "asc")
   );
   const productSnapshot = await getDocs(q);
   const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
@@ -32,8 +34,11 @@ export async function getSelfServiceProducts(): Promise<Product[]> {
 // Function to add a new product to Firestore
 export async function addProduct(product: NewProduct): Promise<Product> {
   const productsCol = collection(db, 'products');
-  const docRef = await addDoc(productsCol, { ...product, restockCount: 0, preSaleSold: 0 });
-  return { id: docRef.id, ...product, restockCount: 0, preSaleSold: 0 };
+  const snapshot = await getDocs(productsCol);
+  const newPosition = snapshot.size; // Position will be the current number of products
+
+  const docRef = await addDoc(productsCol, { ...product, restockCount: 0, preSaleSold: 0, position: newPosition });
+  return { id: docRef.id, ...product, restockCount: 0, preSaleSold: 0, position: newPosition };
 }
 
 // Function to add a product with a specific ID (for seeding)
@@ -49,6 +54,7 @@ export async function addProductWithId(product: Product): Promise<void> {
         isPosAvailable: product.isPosAvailable ?? true,
         restockCount: product.restockCount || 0,
         preSaleSold: product.preSaleSold || 0,
+        position: product.position || 0,
     });
 }
 
@@ -82,4 +88,14 @@ export async function increaseProductStock(productId: string, quantity: number, 
     }
     
     await updateDoc(productRef, updates);
+}
+
+// Function to update the order of products
+export async function updateProductOrder(products: Product[]): Promise<void> {
+    const batch = writeBatch(db);
+    products.forEach((product, index) => {
+        const productRef = doc(db, 'products', product.id);
+        batch.update(productRef, { position: index });
+    });
+    await batch.commit();
 }
