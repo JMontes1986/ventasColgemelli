@@ -30,11 +30,11 @@ export default function DashboardLayout({
   }, [isMounted, currentUser, router]);
 
   const accessibleNavItems = useMemo(() => {
-    if (!currentUser) {
+    if (!currentUser?.permissions) {
       return [];
     }
     return allNavItems.filter(item => 
-      currentUser.permissions?.includes(item.permission)
+      currentUser.permissions.includes(item.permission)
     );
   }, [currentUser]);
 
