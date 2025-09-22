@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { User, NewUser, ModulePermission } from "@/lib/types";
+import type { User, NewUser, ModulePermission, UserRole } from "@/lib/types";
 import { getUsers, addUser, updateUserPermissions, addSeedUsers } from "@/lib/services/user-service";
 import { useToast } from "@/hooks/use-toast";
 import { PermissionGate } from "@/components/permission-gate";
@@ -39,20 +39,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useMockAuth } from "@/hooks/use-mock-auth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
-const moduleNames: Record<ModulePermission, string> = {
-  'dashboard': 'Panel de Control',
-  'sales': 'Punto de Venta',
-  'self-service': 'Autogestión',
-  'products': 'Productos',
-  'redeem': 'Canjear Compras',
-  'cashbox': 'Gestión de Caja',
-  'returns': 'Devoluciones',
-  'users': 'Gestión de Usuarios',
-  'audit': 'Auditoría',
+const roleNames: Record<UserRole, string> = {
+  admin: 'Administrador',
+  cashier: 'Cajero',
+  seller: 'Vendedor',
+  auditor: 'Auditor',
 };
-
-const allModules = Object.keys(moduleNames) as ModulePermission[];
 
 function UserForm({
     mode,
@@ -67,6 +68,7 @@ function UserForm({
     const [name, setName] = useState(initialData?.name || '');
     const [username, setUsername] = useState(initialData?.username || '');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState<UserRole>('seller');
     const [isOpen, setIsOpen] = useState(false);
 
     const handleOpenChange = (open: boolean) => {
@@ -75,6 +77,7 @@ function UserForm({
             setName('');
             setUsername('');
             setPassword('');
+            setRole('seller');
         }
     };
 
@@ -85,13 +88,13 @@ function UserForm({
             name,
             username,
             password,
-            permissions: allModules, // All new users get all permissions
+            role,
             avatarUrl: `https://picsum.photos/seed/${name.replace(/\s/g, '')}/100/100`,
         };
 
         try {
             const addedUser = await addUser(newUserData);
-            onUserAdded(addedUser);
+            onUserAdded(addedUser as User);
             toast({ title: "Éxito", description: "Usuario añadido correctamente." });
             setIsOpen(false);
         } catch (error) {
@@ -114,7 +117,7 @@ function UserForm({
                 <DialogHeader>
                     <DialogTitle>Crear Nuevo Usuario</DialogTitle>
                     <DialogDescription>
-                        Complete los detalles del nuevo usuario. Todos los usuarios nuevos tendrán permisos de administrador.
+                        Complete los detalles y asigne un rol al nuevo usuario.
                     </DialogDescription>
                 </DialogHeader>
                 <form id={`user-form-${initialData?.id || 'create'}`} onSubmit={handleSubmit}>
@@ -130,6 +133,19 @@ function UserForm({
                         <div className="space-y-2">
                             <Label htmlFor="user-password">Contraseña</Label>
                             <Input id="user-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="user-role">Rol</Label>
+                            <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
+                                <SelectTrigger id="user-role">
+                                    <SelectValue placeholder="Seleccione un rol" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.entries(roleNames).map(([key, name]) => (
+                                        <SelectItem key={key} value={key}>{name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </form>
@@ -177,7 +193,7 @@ export default function UsersPage() {
     <div>
       <PageHeader
         title="Gestión de Usuarios"
-        description="Administrar usuarios. Actualmente todos los usuarios tienen permisos de administrador."
+        description="Administrar usuarios y sus roles en el sistema."
       >
         <PermissionGate requiredPermission="users">
            <UserForm mode="create" onUserAdded={handleUserAdded} />
@@ -198,7 +214,7 @@ export default function UsersPage() {
                 <TableHeader>
                 <TableRow>
                     <TableHead>Usuario</TableHead>
-                    <TableHead>Permisos</TableHead>
+                    <TableHead>Rol</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -217,9 +233,9 @@ export default function UsersPage() {
                         </div>
                     </TableCell>
                     <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-md">
-                           <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Administrador Total</span>
-                        </div>
+                       <Badge variant="secondary" className="capitalize">
+                            {roleNames[user.role] || user.role}
+                        </Badge>
                     </TableCell>
                     </TableRow>
                 ))}
@@ -231,3 +247,4 @@ export default function UsersPage() {
     </div>
   );
 }
+

@@ -4,6 +4,7 @@ import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, limi
 import type { User, NewUser, ModulePermission } from "@/lib/types";
 import { mockUsers } from "@/lib/placeholder-data";
 import { addAuditLog } from "./audit-service";
+import { getPermissionsForRole } from "@/lib/roles";
 
 // Function to authenticate a user
 export async function authenticateUser(username: string, password_provided: string): Promise<User | null> {
@@ -39,13 +40,18 @@ export async function getUsers(): Promise<User[]> {
 }
 
 // Function to add a new user to Firestore
-export async function addUser(user: NewUser): Promise<User> {
+export async function addUser(user: NewUser): Promise<Omit<User, 'permissions'>> {
   const usersCol = collection(db, 'users');
-  // We don't want to store the password in plain text if it's not needed for login logic on the client
-  // For now, as the request is to have it, we will store it.
-  // In a real app, you'd hash this password or use Firebase Auth.
-  const { password, ...userData } = user;
-  const docRef = await addDoc(usersCol, { ...userData, password });
+  const permissions = getPermissionsForRole(user.role);
+  
+  const docRef = await addDoc(usersCol, {
+      name: user.name,
+      username: user.username,
+      password: user.password,
+      role: user.role,
+      permissions: permissions,
+      avatarUrl: user.avatarUrl,
+  });
   return { id: docRef.id, ...user };
 }
 
@@ -53,9 +59,10 @@ export async function addUser(user: NewUser): Promise<User> {
 export async function addSeedUsers(): Promise<void> {
     console.log("Seeding users...");
     const promises = mockUsers.map(user => {
+        const permissions = getPermissionsForRole(user.role);
         // Use username as the document ID for predictability
         const userRef = doc(db, 'users', user.username);
-        return setDoc(userRef, user);
+        return setDoc(userRef, { ...user, permissions });
     });
     await Promise.all(promises);
 }
@@ -72,3 +79,4 @@ export async function updateUserPermissions(userId: string, permissions: ModuleP
         details: `Permisos del usuario ${userId} actualizados.`,
     });
 }
+

@@ -1,6 +1,6 @@
 
 
-export type UserRole = 'admin' | 'cashier' | 'seller' | 'auditor' | 'readonly';
+export type UserRole = 'admin' | 'cashier' | 'seller' | 'auditor';
 
 export type ModulePermission =
   | 'dashboard'
@@ -19,11 +19,12 @@ export type User = {
   name: string;
   username: string;
   password?: string;
+  role: UserRole;
   permissions: ModulePermission[];
   avatarUrl: string;
 };
 
-export type NewUser = Omit<User, 'id'>;
+export type NewUser = Omit<User, 'id' | 'permissions'>;
 export type UpdatableUser = Partial<Omit<User, 'id' | 'username' | 'password'>>;
 
 
