@@ -1,6 +1,6 @@
 # Ventas ColGemelli
 
-**Ventas ColGemelli** es una aplicación de gestión de ventas y emisión de tickets para el Colegio Franciscano Agustín Gemelli. Está construida con **Next.js** y desplegada en **Firebase**, integrando autenticación, Firestore y hosting.
+**Ventas ColGemelli** es una aplicación de gestión de ventas y emisión de tickets para el Colegio Franciscano Agustín Gemelli. Está construida con **Next.js** y desplegada en **Firebase**, integrando autenticación, Firestore.
 
 ---
 
@@ -35,9 +35,7 @@
 
 - [Next.js](https://nextjs.org/) (TypeScript)  
 - [Firebase](https://firebase.google.com/)  
-  - Firestore  
-  - Firebase Hosting  
-  - Authentication  
+  - Firestore 
 - [Tailwind CSS](https://tailwindcss.com/)  
 
 ---
