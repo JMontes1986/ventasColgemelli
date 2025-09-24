@@ -192,6 +192,15 @@ export default function SelfServicePosPage() {
         setIsUserInfoModalOpen(false);
         setIsPaymentModalOpen(true);
         toast({ title: "Éxito", description: "Código de pago generado. Su compra está pendiente de confirmación." });
+        
+         // Add audit log for self-service purchase
+        await addAuditLog({
+          userId: cedula,
+          userName: 'Cliente (Autogestión POS)',
+          action: 'SELF_SERVICE_PURCHASE',
+          details: `Nueva compra en sitio #${addedPurchase.id} por ${formatCurrency(addedPurchase.total)} iniciada por C.C. ${cedula}.`,
+        });
+
     } catch (error) {
         console.error("Error creating purchase:", error);
         toast({ variant: "destructive", title: "Error en la Compra", description: (error as Error).message || "No se pudo generar el código de pago." });

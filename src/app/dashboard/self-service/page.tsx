@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { getSelfServiceProducts } from '@/lib/services/product-service';
+import { getProductsByAvailability } from '@/lib/services/product-service';
 import { addPurchase, getPurchasesByCedula, type NewPurchase, updatePendingPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -71,7 +71,7 @@ export default function SelfServicePage() {
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
     try {
-        const fetchedProducts = await getSelfServiceProducts();
+        const fetchedProducts = await getProductsByAvailability('presale');
         setProducts(fetchedProducts);
     } catch (error) {
         console.error("Error fetching products:", error);
@@ -191,6 +191,15 @@ export default function SelfServicePage() {
         setIsUserInfoModalOpen(false);
         setIsPaymentModalOpen(true);
         toast({ title: "Éxito", description: "Código de pago generado. Su compra está pendiente de confirmación." });
+        
+        // Add audit log for self-service purchase
+        await addAuditLog({
+          userId: cedula,
+          userName: 'Cliente (Autogestión)',
+          action: 'SELF_SERVICE_PURCHASE',
+          details: `Nueva compra de preventa #${addedPurchase.id} por ${formatCurrency(addedPurchase.total)} iniciada por C.C. ${cedula}.`,
+        });
+
     } catch (error) {
         console.error("Error creating purchase:", error);
         toast({ variant: "destructive", title: "Error en la Compra", description: (error as Error).message || "No se pudo generar el código de pago." });

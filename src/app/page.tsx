@@ -30,6 +30,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Logo } from "@/components/icons";
+import { addAuditLog } from "@/lib/services/audit-service";
 
 function CreateUserForm({ onUserCreated }: { onUserCreated: () => void }) {
   const { toast } = useToast();
@@ -159,6 +160,15 @@ export default function LoginPage() {
           title: "Inicio de sesión exitoso",
           description: `¡Bienvenido de nuevo, ${authenticatedUser.name}!`,
         });
+
+        // Add audit log for successful login
+        await addAuditLog({
+          userId: authenticatedUser.id,
+          userName: authenticatedUser.name,
+          action: 'USER_LOGIN',
+          details: `Usuario ${authenticatedUser.name} (${authenticatedUser.username}) ha iniciado sesión.`,
+        });
+
         if (authenticatedUser.role === 'cashier') {
             router.push("/dashboard/sales");
         } else {

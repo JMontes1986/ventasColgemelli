@@ -1,61 +1,16 @@
-# Ventas ColGemelli
+# Ventas ColGemelli - Sistema de Gestión
 
-**Ventas ColGemelli** es una aplicación de gestión de ventas y emisión de tickets para el Colegio Franciscano Agustín Gemelli. Está construida con **Next.js** y desplegada en **Firebase**, integrando autenticación, Firestore.
+Este es un proyecto Next.js creado con Firebase Studio para la gestión de ventas y tickets del Colegio Gemelli.
 
----
+## Primeros Pasos
 
-## 📑 Tabla de contenidos
+Para ejecutar el proyecto localmente, sigue estos pasos:
 
-- [Características](#-características)  
-- [Tecnologías usadas](#-tecnologías-usadas)  
-- [Instalación y ejecución local](#-instalación-y-ejecución-local)  
-- [Variables de entorno](#-variables-de-entorno)  
-- [Estructura del proyecto](#-estructura-del-proyecto)  
-- [Despliegue](#-despliegue)  
-- [Reglas de Firestore y seguridad](#-reglas-de-firestore-y-seguridad)  
-- [Contribuciones](#-contribuciones)  
-- [Licencia](#-licencia)  
-- [Contacto](#-contacto)
-
----
-
-## ✨ Características
-
-- Gestión de ventas con registro y seguimiento.  
-- Emisión de tickets o comprobantes digitales.  
-- Autenticación de usuarios con Firebase.  
-- Panel administrativo para control de operaciones.  
-- Hospedaje en Firebase (Hosting + Firestore).  
-- Reglas de seguridad configuradas en Firestore.  
-- Interfaz moderna con **Next.js** y **Tailwind CSS**.  
-
----
-
-## 🛠 Tecnologías usadas
-
-- [Next.js](https://nextjs.org/) (TypeScript)  
-- [Firebase](https://firebase.google.com/)  
-  - Firestore 
-- [Tailwind CSS](https://tailwindcss.com/)  
-
----
-
-## ⚙️ Instalación y ejecución local
-
-Sigue estos pasos para correr la aplicación en tu entorno local:
-
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/JMontes1986/ventasColgemelli.git
-   cd ventasColgemelli
-Instala las dependencias:
-
-bash
-Copiar código
-npm install
-Configura las variables de entorno (ver sección siguiente).
-
-Inicia el servidor de desarrollo:
+1.  **Instalar dependencias:**
+    Abre una terminal en la raíz del proyecto y ejecuta:
+    ```bash
+    npm install
+    ```
 
 bash
 Copiar código

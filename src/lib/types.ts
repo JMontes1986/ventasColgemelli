@@ -11,7 +11,8 @@ export type ModulePermission =
   | 'cashbox'
   | 'returns'
   | 'users'
-  | 'audit';
+  | 'audit'
+  | 'self-service-pos';
 
 
 export type User = {
@@ -69,7 +70,7 @@ export type CashboxSession = {
   totalSales: number;
 };
 
-export type AuditLogAction = 'TICKET_ISSUE' | 'TICKET_SELL' | 'TICKET_REDEEM' | 'TICKET_VOID' | 'CASHBOX_OPEN' | 'CASHBOX_CLOSE' | 'USER_ROLE_CHANGE' | 'PAYMENT_CONFIRM' | 'STOCK_RESTOCK' | 'PURCHASE_EDIT';
+export type AuditLogAction = 'TICKET_ISSUE' | 'TICKET_SELL' | 'TICKET_REDEEM' | 'TICKET_VOID' | 'CASHBOX_OPEN' | 'CASHBOX_CLOSE' | 'USER_ROLE_CHANGE' | 'PAYMENT_CONFIRM' | 'STOCK_RESTOCK' | 'PURCHASE_EDIT' | 'USER_LOGIN' | 'SELF_SERVICE_PURCHASE';
 
 export type AuditLog = {
   id: string;
@@ -82,6 +83,8 @@ export type AuditLog = {
 
 export type NewAuditLog = Omit<AuditLog, 'id' | 'timestamp'>;
 
+export type ProductAvailability = 'pos' | 'self-service' | 'presale';
+
 export type Product = {
     id: string;
     name: string;
@@ -89,8 +92,7 @@ export type Product = {
     stock: number;
     imageUrl: string;
     imageHint: string;
-    isSelfService: boolean;
-    isPosAvailable: boolean;
+    availability: ProductAvailability;
     restockCount?: number;
     preSaleSold?: number;
     position: number;
