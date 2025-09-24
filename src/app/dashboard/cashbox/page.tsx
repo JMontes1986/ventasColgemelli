@@ -67,7 +67,7 @@ export default function CashboxPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser, toast]);
+    }, [currentUser]);
 
     useEffect(() => {
         loadCashboxData();
