@@ -83,12 +83,12 @@ export async function closeCashboxSession(sessionId: string, closingBalance: num
 }
 
 // Function to add a sale to an active cashbox session (to be used within a transaction)
-export async function addSaleToCashbox(transaction: any, userId: string, saleAmount: number) {
-    const sessionsCol = collection(db, 'cashboxSessions');
-    const q = query(sessionsCol, where("userId", "==", userId), where("status", "==", "open"), limit(1));
-    
+export function addSaleToCashbox(transaction: any, userId: string, saleAmount: number, q: any) {
     // This part of the transaction needs to use the transaction object to get documents
-    const sessionSnapshot = await transaction.get(q);
+    // The query MUST be read before this function is called, and the result passed in.
+    // This is a limitation of Firestore transactions (all reads before writes).
+    
+    const sessionSnapshot = transaction.get(q);
 
     if (sessionSnapshot.empty) {
         throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
