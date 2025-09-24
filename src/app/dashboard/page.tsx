@@ -82,7 +82,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     loadData();
