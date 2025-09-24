@@ -4,7 +4,6 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem, User } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
-import { useMockAuth } from "@/hooks/use-mock-auth";
 
 
 // Function to get all purchases, ordered by date
@@ -59,25 +58,19 @@ export async function getPurchasesByCelular(celular: string): Promise<Purchase[]
 // Function to add a new purchase to Firestore with a custom ID and update stock
 export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
   const counterRef = doc(db, "counters", "purchaseCounter");
-
-  // Get the first letter of the first item, or 'X' if cart is empty.
   const firstItemInitial = purchase.items.length > 0 
     ? purchase.items[0].name.charAt(0).toUpperCase()
     : 'X';
 
   try {
     const newPurchaseId = await runTransaction(db, async (transaction) => {
-      // --- ALL READS MUST COME BEFORE ALL WRITES ---
-
-      // 1. READ phase: Read all necessary documents first.
-      const productDocs = await Promise.all(
-        purchase.items
-          .map(item => transaction.get(doc(db, 'products', item.id)))
-      );
+      // --- 1. READ PHASE ---
+      // Read all necessary documents first.
       
+      const productRefs = purchase.items.map(item => doc(db, 'products', item.id));
+      const productDocs = await Promise.all(productRefs.map(ref => transaction.get(ref)));
       const counterDoc = await transaction.get(counterRef);
 
-      // Read active cashbox session if it's a POS sale
       let activeCashboxSessionDoc: any = null;
       if (purchase.sellerId) {
         const sessionsCol = collection(db, 'cashboxSessions');
@@ -89,11 +82,9 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
         activeCashboxSessionDoc = sessionSnapshot.docs[0];
       }
 
-
-      // --- VALIDATION AND PREPARATION phase ---
-
+      // --- 2. VALIDATION & PREPARATION PHASE ---
+      
       // Validate products and prepare stock updates
-      const stockUpdates: { ref: DocumentReference, newStock: number }[] = [];
       for (let i = 0; i < productDocs.length; i++) {
         const productDoc = productDocs[i];
         const item = purchase.items[i];
@@ -108,22 +99,24 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
         if (newStock < 0) {
           throw new Error(`Stock insuficiente para ${productData.name}.`);
         }
-        
-        stockUpdates.push({ ref: productDoc.ref, newStock });
       }
 
       // Prepare counter update
-      let newCount = 1;
-      if (counterDoc.exists()) {
-        newCount = counterDoc.data().count + 1;
-      }
-      
-      // Generate the new Purchase ID
+      const newCount = counterDoc.exists() ? counterDoc.data().count + 1 : 1;
       const formattedCount = String(newCount).padStart(4, '0');
       const generatedId = `CG${firstItemInitial}${formattedCount}`;
-      
 
-      // --- ALL WRITES HAPPEN HERE ---
+      // --- 3. WRITE PHASE ---
+      
+      // Update stock for each product
+      productDocs.forEach((productDoc, i) => {
+        const item = purchase.items[i];
+        const newStock = productDoc.data()!.stock - item.quantity;
+        transaction.update(productDoc.ref, { stock: newStock });
+      });
+
+      // Update the purchase counter
+      transaction.set(counterRef, { count: newCount }, { merge: true });
 
       // If it's a POS sale, update the active cashbox session
       if (activeCashboxSessionDoc) {
@@ -131,21 +124,10 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
           transaction.update(sessionRef, { totalSales: increment(purchase.total) });
       }
 
-      // Update stock for each product
-      stockUpdates.forEach(update => {
-        transaction.update(update.ref, { stock: update.newStock });
-      });
-
-      // Update the purchase counter
-      transaction.set(counterRef, { count: newCount }, { merge: true });
-
       // Create the new purchase document
       const purchaseRef = doc(db, 'purchases', generatedId);
-      // Ensure all items have the 'returned' flag set to false initially
       const itemsToSave = purchase.items.map(({...item}) => ({...item, returned: false }));
-      
-      const purchaseDataToSave = { ...purchase, items: itemsToSave };
-      transaction.set(purchaseRef, purchaseDataToSave);
+      transaction.set(purchaseRef, { ...purchase, items: itemsToSave });
 
       return generatedId;
     });
@@ -153,7 +135,6 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
     return { id: newPurchaseId, ...purchase };
   } catch (error) {
     console.error("Transaction failed: ", error);
-    // Re-throw the error to be caught by the calling function
     throw error;
   }
 }
@@ -310,16 +291,17 @@ export async function updatePendingPurchase(purchaseId: string, newCart: Omit<Ca
 
 export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUser: User): Promise<void> {
     await runTransaction(db, async (transaction) => {
+        // --- 1. READ PHASE ---
         const purchaseRef = doc(db, "purchases", purchaseId);
         const purchaseDoc = await transaction.get(purchaseRef);
 
-        if (!purchaseDoc.exists() || purchaseDoc.data().status !== 'pre-sale') {
-            throw new Error("Preventa no encontrada o ya ha sido confirmada.");
+        if (!purchaseDoc.exists()) {
+            throw new Error("Preventa no encontrada.");
         }
-
-        const purchaseData = purchaseDoc.data() as Purchase;
-
-        // Read active cashbox session
+        if (purchaseDoc.data().status !== 'pre-sale') {
+            throw new Error("Esta preventa ya ha sido confirmada o procesada.");
+        }
+        
         const sessionsCol = collection(db, 'cashboxSessions');
         const q = query(sessionsCol, where("userId", "==", currentUser.id), where("status", "==", "open"), limit(1));
         const sessionSnapshot = await transaction.get(q);
@@ -329,6 +311,10 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
         }
         const activeCashboxSessionDoc = sessionSnapshot.docs[0];
 
+        // --- 2. VALIDATION & PREPARATION PHASE (no validation needed for this operation) ---
+        const purchaseData = purchaseDoc.data() as Purchase;
+
+        // --- 3. WRITE PHASE ---
         // Increase stock for each item in the pre-sale
         for (const item of purchaseData.items) {
             const productRef = doc(db, "products", item.id);
@@ -341,13 +327,14 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
 
         // Update purchase status
         transaction.update(purchaseRef, { status: "pre-sale-confirmed" });
-        
-        // Log the confirmation in audit (this is an external call, so it's not part of the transaction)
-        await addAuditLog({
-            userId: currentUser.id,
-            userName: currentUser.name,
-            action: 'STOCK_RESTOCK', // Reusing this action
-            details: `Preventa ${purchaseId} confirmada. Stock actualizado.`,
-        });
+    });
+
+    // Audit log is outside the transaction to avoid issues if it fails.
+    // The core financial transaction is more critical.
+    await addAuditLog({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'STOCK_RESTOCK', // Reusing this action
+        details: `Preventa ${purchaseId} confirmada. Stock actualizado.`,
     });
 }
