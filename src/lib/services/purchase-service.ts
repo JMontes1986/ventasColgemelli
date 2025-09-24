@@ -62,69 +62,54 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
     ? purchase.items[0].name.charAt(0).toUpperCase()
     : 'X';
 
+  // Get active cashbox session REF before transaction
+  let activeCashboxSessionRef: DocumentReference | null = null;
+  if (purchase.sellerId) {
+    const sessionsCol = collection(db, 'cashboxSessions');
+    const q = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
+    const sessionSnapshot = await getDocs(q);
+    if (sessionSnapshot.empty) {
+      throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
+    }
+    activeCashboxSessionRef = sessionSnapshot.docs[0].ref;
+  }
+
   try {
     const newPurchaseId = await runTransaction(db, async (transaction) => {
       // --- 1. READ PHASE ---
-      // Read all necessary documents first.
-      
+      const counterDoc = await transaction.get(counterRef);
       const productRefs = purchase.items.map(item => doc(db, 'products', item.id));
       const productDocs = await Promise.all(productRefs.map(ref => transaction.get(ref)));
-      const counterDoc = await transaction.get(counterRef);
-
-      let activeCashboxSessionDoc: any = null;
-      if (purchase.sellerId) {
-        const sessionsCol = collection(db, 'cashboxSessions');
-        const q = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
-        const sessionSnapshot = await transaction.get(q);
-        if (sessionSnapshot.empty) {
-          throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
-        }
-        activeCashboxSessionDoc = sessionSnapshot.docs[0];
-      }
-
-      // --- 2. VALIDATION & PREPARATION PHASE ---
       
-      // Validate products and prepare stock updates
+      // --- 2. VALIDATION & PREPARATION PHASE ---
       for (let i = 0; i < productDocs.length; i++) {
         const productDoc = productDocs[i];
-        const item = purchase.items[i];
-        
         if (!productDoc.exists()) {
-          throw new Error(`Producto con ID ${item.id} no encontrado.`);
+          throw new Error(`Producto con ID ${purchase.items[i].id} no encontrado.`);
         }
-        
         const productData = productDoc.data() as Product;
-        const newStock = productData.stock - item.quantity;
-
-        if (newStock < 0) {
+        if (productData.stock < purchase.items[i].quantity) {
           throw new Error(`Stock insuficiente para ${productData.name}.`);
         }
       }
 
-      // Prepare counter update
       const newCount = counterDoc.exists() ? counterDoc.data().count + 1 : 1;
       const formattedCount = String(newCount).padStart(4, '0');
       const generatedId = `CG${firstItemInitial}${formattedCount}`;
 
       // --- 3. WRITE PHASE ---
-      
-      // Update stock for each product
       productDocs.forEach((productDoc, i) => {
         const item = purchase.items[i];
         const newStock = productDoc.data()!.stock - item.quantity;
         transaction.update(productDoc.ref, { stock: newStock });
       });
 
-      // Update the purchase counter
       transaction.set(counterRef, { count: newCount }, { merge: true });
 
-      // If it's a POS sale, update the active cashbox session
-      if (activeCashboxSessionDoc) {
-          const sessionRef = doc(db, 'cashboxSessions', activeCashboxSessionDoc.id);
-          transaction.update(sessionRef, { totalSales: increment(purchase.total) });
+      if (activeCashboxSessionRef) {
+          transaction.update(activeCashboxSessionRef, { totalSales: increment(purchase.total) });
       }
 
-      // Create the new purchase document
       const purchaseRef = doc(db, 'purchases', generatedId);
       const itemsToSave = purchase.items.map(({...item}) => ({...item, returned: false }));
       transaction.set(purchaseRef, { ...purchase, items: itemsToSave });
@@ -290,6 +275,18 @@ export async function updatePendingPurchase(purchaseId: string, newCart: Omit<Ca
 }
 
 export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUser: User): Promise<void> {
+    // Get active cashbox session REF before transaction
+    let activeCashboxSessionRef: DocumentReference | null = null;
+    if (currentUser.id) {
+        const sessionsCol = collection(db, 'cashboxSessions');
+        const q = query(sessionsCol, where("userId", "==", currentUser.id), where("status", "==", "open"), limit(1));
+        const sessionSnapshot = await getDocs(q);
+        if (sessionSnapshot.empty) {
+        throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
+        }
+        activeCashboxSessionRef = sessionSnapshot.docs[0].ref;
+    }
+
     await runTransaction(db, async (transaction) => {
         // --- 1. READ PHASE ---
         const purchaseRef = doc(db, "purchases", purchaseId);
@@ -302,19 +299,9 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
             throw new Error("Esta preventa ya ha sido confirmada o procesada.");
         }
         
-        const sessionsCol = collection(db, 'cashboxSessions');
-        const q = query(sessionsCol, where("userId", "==", currentUser.id), where("status", "==", "open"), limit(1));
-        const sessionSnapshot = await transaction.get(q);
-
-        if (sessionSnapshot.empty) {
-          throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
-        }
-        const activeCashboxSessionDoc = sessionSnapshot.docs[0];
-
-        // --- 2. VALIDATION & PREPARATION PHASE (no validation needed for this operation) ---
         const purchaseData = purchaseDoc.data() as Purchase;
 
-        // --- 3. WRITE PHASE ---
+        // --- 2. WRITE PHASE ---
         // Increase stock for each item in the pre-sale
         for (const item of purchaseData.items) {
             const productRef = doc(db, "products", item.id);
@@ -322,8 +309,9 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
         }
         
         // Update active cashbox session
-        const sessionRef = doc(db, 'cashboxSessions', activeCashboxSessionDoc.id);
-        transaction.update(sessionRef, { totalSales: increment(purchaseData.total) });
+        if (activeCashboxSessionRef) {
+            transaction.update(activeCashboxSessionRef, { totalSales: increment(purchaseData.total) });
+        }
 
         // Update purchase status
         transaction.update(purchaseRef, { status: "pre-sale-confirmed" });
