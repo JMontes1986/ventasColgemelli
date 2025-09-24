@@ -5,7 +5,6 @@ import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction,
 import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem, User } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
 import { useMockAuth } from "@/hooks/use-mock-auth";
-import { addSaleToCashbox } from "./cashbox-service";
 
 
 // Function to get all purchases, ordered by date
@@ -78,6 +77,19 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       
       const counterDoc = await transaction.get(counterRef);
 
+      // Read active cashbox session if it's a POS sale
+      let activeCashboxSessionDoc: any = null;
+      if (purchase.sellerId) {
+        const sessionsCol = collection(db, 'cashboxSessions');
+        const q = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
+        const sessionSnapshot = await transaction.get(q);
+        if (sessionSnapshot.empty) {
+          throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
+        }
+        activeCashboxSessionDoc = sessionSnapshot.docs[0];
+      }
+
+
       // --- VALIDATION AND PREPARATION phase ---
 
       // Validate products and prepare stock updates
@@ -113,12 +125,11 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
 
       // --- ALL WRITES HAPPEN HERE ---
 
-      // If it's a POS sale, it must be linked to an active cashbox session
-      if (purchase.sellerId) {
-        await addSaleToCashbox(transaction, purchase.sellerId, purchase.total);
+      // If it's a POS sale, update the active cashbox session
+      if (activeCashboxSessionDoc) {
+          const sessionRef = doc(db, 'cashboxSessions', activeCashboxSessionDoc.id);
+          transaction.update(sessionRef, { totalSales: increment(purchase.total) });
       }
-
-      // 2. WRITE phase: Commit all changes to the database.
 
       // Update stock for each product
       stockUpdates.forEach(update => {
@@ -308,21 +319,30 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
 
         const purchaseData = purchaseDoc.data() as Purchase;
 
+        // Read active cashbox session
+        const sessionsCol = collection(db, 'cashboxSessions');
+        const q = query(sessionsCol, where("userId", "==", currentUser.id), where("status", "==", "open"), limit(1));
+        const sessionSnapshot = await transaction.get(q);
+
+        if (sessionSnapshot.empty) {
+          throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
+        }
+        const activeCashboxSessionDoc = sessionSnapshot.docs[0];
+
         // Increase stock for each item in the pre-sale
         for (const item of purchaseData.items) {
             const productRef = doc(db, "products", item.id);
             transaction.update(productRef, { stock: increment(item.quantity) });
         }
         
-        // This is a POS action, so it must be linked to an active cashbox session
-        if (currentUser) {
-            await addSaleToCashbox(transaction, currentUser.id, purchaseData.total);
-        }
+        // Update active cashbox session
+        const sessionRef = doc(db, 'cashboxSessions', activeCashboxSessionDoc.id);
+        transaction.update(sessionRef, { totalSales: increment(purchaseData.total) });
 
         // Update purchase status
         transaction.update(purchaseRef, { status: "pre-sale-confirmed" });
         
-        // Log the confirmation in audit
+        // Log the confirmation in audit (this is an external call, so it's not part of the transaction)
         await addAuditLog({
             userId: currentUser.id,
             userName: currentUser.name,

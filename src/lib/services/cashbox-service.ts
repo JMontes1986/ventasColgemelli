@@ -81,26 +81,3 @@ export async function closeCashboxSession(sessionId: string, closingBalance: num
         details: `Caja cerrada con un saldo final de ${closingBalance}.`,
     });
 }
-
-// Function to add a sale to an active cashbox session within a Firestore transaction
-export async function addSaleToCashbox(transaction: any, userId: string, saleAmount: number) {
-    // This function must be called from within a runTransaction block.
-    // It will read the active session and update the total sales atomically.
-    const sessionsCol = collection(db, 'cashboxSessions');
-    const q = query(sessionsCol, where("userId", "==", userId), where("status", "==", "open"), limit(1));
-    
-    // Perform the read inside the transaction
-    const sessionSnapshot = await transaction.get(q);
-
-    if (sessionSnapshot.empty) {
-        throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
-    }
-
-    const sessionDoc = sessionSnapshot.docs[0];
-    const sessionRef = doc(db, 'cashboxSessions', sessionDoc.id);
-    
-    // Perform the write inside the transaction
-    transaction.update(sessionRef, {
-        totalSales: increment(saleAmount)
-    });
-}
