@@ -139,7 +139,8 @@ export default function SalesPage() {
       const availableStock = productInDb.stock - (pendingQuantities[productInDb.id] || 0);
       if (newQuantity > availableStock) {
           toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${availableStock} unidades disponibles de ${itemToUpdate.name}.` });
-          return;
+          // Clamp the value to the available stock instead of returning
+          newQuantity = availableStock;
       }
     }
     
@@ -393,13 +394,14 @@ export default function SalesPage() {
                                                     <Minus className="h-4 w-4" />
                                                 </Button>
                                                 <Input
-                                                    key={item.quantity}
                                                     type="number"
-                                                    defaultValue={item.quantity}
-                                                    onBlur={(e) => {
+                                                    value={item.quantity}
+                                                    onChange={(e) => {
                                                         const newQuantity = parseInt(e.target.value, 10);
                                                         if (!isNaN(newQuantity)) {
                                                           updateQuantity(item.id, newQuantity);
+                                                        } else if (e.target.value === '') {
+                                                            // Handle empty input case if needed, e.g., set to 0 or 1
                                                         }
                                                     }}
                                                     className="w-12 h-6 text-center bg-blue-900 border-blue-700"
@@ -461,3 +463,4 @@ export default function SalesPage() {
     </div>
   );
 }
+
