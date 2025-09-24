@@ -104,21 +104,22 @@ export default function SalesPage() {
   const pendingSelfServicePurchases = purchases.filter(p => p.status === 'pending' && !p.sellerId);
 
   const addToCart = (item: Product) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
-      
-      const product = item as Product;
-      const availableStock = product.stock - (pendingQuantities[product.id] || 0);
+    const product = products.find(p => p.id === item.id);
+    if (!product) return;
 
-      if (availableStock <= 0) {
-          toast({ variant: "destructive", title: "Sin Stock", description: `${product.name} está agotado o reservado.` });
-          return prevCart;
-      }
-       if (existingItem && existingItem.quantity >= availableStock) {
-          toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${product.name}.` });
-          return prevCart;
-      }
+    const existingItem = cart.find((cartItem) => cartItem.id === item.id);
+    const availableStock = product.stock - (pendingQuantities[product.id] || 0);
+
+    if (availableStock <= 0) {
+      toast({ variant: "destructive", title: "Sin Stock", description: `${product.name} está agotado o reservado.` });
+      return;
+    }
+    if (existingItem && existingItem.quantity >= availableStock) {
+      toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${product.name}.` });
+      return;
+    }
       
+    setCart((prevCart) => {
       if (existingItem) {
         return prevCart.map((cartItem) =>
           cartItem.id === item.id
@@ -126,28 +127,26 @@ export default function SalesPage() {
             : cartItem
         );
       }
-      const stock = item.stock;
-      return [...prevCart, { id: item.id, name: item.name, price: item.price, quantity: 1, type: 'product', stock }];
+      return [...prevCart, { id: item.id, name: item.name, price: item.price, quantity: 1, type: 'product', stock: item.stock }];
     });
   };
 
   const updateQuantity = (id: string, newQuantity: number) => {
+    const itemToUpdate = cart.find(item => item.id === id);
+    const productInDb = products.find(p => p.id === id);
+
+    if (itemToUpdate?.type === 'product' && productInDb) {
+      const availableStock = productInDb.stock - (pendingQuantities[productInDb.id] || 0);
+      if (newQuantity > availableStock) {
+          toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${availableStock} unidades disponibles de ${itemToUpdate.name}.` });
+          return;
+      }
+    }
+    
     setCart((prevCart) => {
       if (newQuantity <= 0) {
         return prevCart.filter((item) => item.id !== id);
       }
-
-      const itemToUpdate = prevCart.find(item => item.id === id);
-      const productInDb = products.find(p => p.id === id);
-
-      if (itemToUpdate?.type === 'product' && productInDb) {
-        const availableStock = productInDb.stock - (pendingQuantities[productInDb.id] || 0);
-        if (newQuantity > availableStock) {
-            toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${availableStock} unidades disponibles de ${itemToUpdate.name}.` });
-            return prevCart;
-        }
-      }
-
       return prevCart.map((item) =>
         item.id === id ? { ...item, quantity: newQuantity } : item
       );
@@ -394,9 +393,10 @@ export default function SalesPage() {
                                                     <Minus className="h-4 w-4" />
                                                 </Button>
                                                 <Input
+                                                    key={item.quantity}
                                                     type="number"
-                                                    value={item.quantity}
-                                                    onChange={(e) => {
+                                                    defaultValue={item.quantity}
+                                                    onBlur={(e) => {
                                                         const newQuantity = parseInt(e.target.value, 10);
                                                         if (!isNaN(newQuantity)) {
                                                           updateQuantity(item.id, newQuantity);
