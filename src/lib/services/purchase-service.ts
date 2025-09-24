@@ -1,9 +1,12 @@
 
+
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem, User } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
 import { useMockAuth } from "@/hooks/use-mock-auth";
+import { addSaleToCashbox } from "./cashbox-service";
+
 
 // Function to get all purchases, ordered by date
 export async function getPurchases(): Promise<Purchase[]> {
@@ -76,6 +79,10 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       const counterDoc = await transaction.get(counterRef);
 
       // --- VALIDATION AND PREPARATION phase ---
+      if (purchase.sellerId) {
+        // This is a POS sale, it must be linked to an active cashbox session
+        await addSaleToCashbox(transaction, purchase.sellerId, purchase.total);
+      }
 
       // Validate products and prepare stock updates
       const stockUpdates: { ref: DocumentReference, newStock: number }[] = [];
@@ -303,6 +310,11 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
         for (const item of purchaseData.items) {
             const productRef = doc(db, "products", item.id);
             transaction.update(productRef, { stock: increment(item.quantity) });
+        }
+        
+        // This is a POS action, so it must be linked to an active cashbox session
+        if (currentUser) {
+            await addSaleToCashbox(transaction, currentUser.id, purchaseData.total);
         }
 
         // Update purchase status

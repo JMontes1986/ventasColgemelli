@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -95,6 +96,7 @@ function RedeemPageComponent() {
         if (codeFromUrl) {
             handleSearch();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [codeFromUrl]);
 
     const handleUpdateStatus = async (purchaseId: string, newStatus: Purchase['status']) => {
@@ -107,6 +109,11 @@ function RedeemPageComponent() {
         }
 
         try {
+            let purchaseToLog = searchResults.find(p => p.id === purchaseId);
+            if (!purchaseToLog) {
+                throw new Error("No se encontró la compra para registrar en auditoría.");
+            }
+
             if (newStatus === 'pre-sale-confirmed') {
                 await confirmPreSaleAndUpdateStock(purchaseId, currentUser);
             } else {
@@ -125,7 +132,7 @@ function RedeemPageComponent() {
                     userId: currentUser.id,
                     userName: currentUser.name,
                     action: 'PAYMENT_CONFIRM',
-                    details: `Pago confirmado para la compra ${purchaseId}.`,
+                    details: `Pago confirmado para la compra ${purchaseId} por un total de ${formatCurrency(purchaseToLog.total)}.`,
                 });
             }
 
@@ -151,7 +158,7 @@ function RedeemPageComponent() {
                         disabled={isUpdating}
                     >
                         <PackagePlus className="mr-2 h-4 w-4" />
-                        {isUpdating ? 'Confirmando...' : 'Confirmar Preventa y Añadir Stock'}
+                        {isUpdating ? 'Confirmando...' : 'Confirmar Preventa y Pagar'}
                     </Button>
                 );
              case 'pre-sale-confirmed':
