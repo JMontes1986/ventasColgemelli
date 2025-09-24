@@ -79,10 +79,6 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       const counterDoc = await transaction.get(counterRef);
 
       // --- VALIDATION AND PREPARATION phase ---
-      if (purchase.sellerId) {
-        // This is a POS sale, it must be linked to an active cashbox session
-        await addSaleToCashbox(transaction, purchase.sellerId, purchase.total);
-      }
 
       // Validate products and prepare stock updates
       const stockUpdates: { ref: DocumentReference, newStock: number }[] = [];
@@ -113,6 +109,12 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       // Generate the new Purchase ID
       const formattedCount = String(newCount).padStart(4, '0');
       const generatedId = `CG${firstItemInitial}${formattedCount}`;
+      
+      // If it's a POS sale, it must be linked to an active cashbox session
+      if (purchase.sellerId) {
+        await addSaleToCashbox(transaction, purchase.sellerId, purchase.total);
+      }
+
 
       // --- ALL WRITES HAPPEN HERE ---
 
