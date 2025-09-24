@@ -135,21 +135,22 @@ export default function SalesPage() {
     const itemToUpdate = cart.find(item => item.id === id);
     const productInDb = products.find(p => p.id === id);
 
+    let finalQuantity = newQuantity;
+
     if (itemToUpdate?.type === 'product' && productInDb) {
       const availableStock = productInDb.stock - (pendingQuantities[productInDb.id] || 0);
-      if (newQuantity > availableStock) {
+      if (finalQuantity > availableStock) {
           toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${availableStock} unidades disponibles de ${itemToUpdate.name}.` });
-          // Clamp the value to the available stock instead of returning
-          newQuantity = availableStock;
+          finalQuantity = availableStock;
       }
     }
     
     setCart((prevCart) => {
-      if (newQuantity <= 0) {
+      if (finalQuantity <= 0) {
         return prevCart.filter((item) => item.id !== id);
       }
       return prevCart.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
+        item.id === id ? { ...item, quantity: finalQuantity } : item
       );
     });
   };
@@ -394,15 +395,15 @@ export default function SalesPage() {
                                                     <Minus className="h-4 w-4" />
                                                 </Button>
                                                 <Input
-                                                    type="number"
+                                                    type="text"
                                                     value={item.quantity}
                                                     onChange={(e) => {
-                                                        const newQuantity = parseInt(e.target.value, 10);
-                                                        if (!isNaN(newQuantity)) {
-                                                          updateQuantity(item.id, newQuantity);
-                                                        } else if (e.target.value === '') {
-                                                            // Handle empty input case if needed, e.g., set to 0 or 1
-                                                        }
+                                                        const value = e.target.value;
+                                                        // Allow only numbers
+                                                        const numericValue = value.replace(/[^0-9]/g, '');
+                                                        // If empty, treat as 0, otherwise parse as integer
+                                                        const newQuantity = numericValue === '' ? 0 : parseInt(numericValue, 10);
+                                                        updateQuantity(item.id, newQuantity);
                                                     }}
                                                     className="w-12 h-6 text-center bg-blue-900 border-blue-700"
                                                 />
@@ -463,4 +464,3 @@ export default function SalesPage() {
     </div>
   );
 }
-
