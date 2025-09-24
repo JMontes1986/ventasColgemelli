@@ -33,6 +33,8 @@ const statusTranslations: Record<Purchase['status'], string> = {
     paid: 'Pagado',
     delivered: 'Entregado',
     cancelled: 'Cancelado',
+    'pre-sale': 'Preventa Pendiente',
+    'pre-sale-confirmed': 'Preventa Confirmada',
 };
 
 const statusColors: Record<Purchase['status'], string> = {
@@ -40,6 +42,8 @@ const statusColors: Record<Purchase['status'], string> = {
     paid: 'bg-green-500/20 text-green-700',
     delivered: 'bg-blue-500/20 text-blue-700',
     cancelled: 'bg-red-500/20 text-red-700',
+    'pre-sale': 'bg-purple-500/20 text-purple-700',
+    'pre-sale-confirmed': 'bg-teal-500/20 text-teal-700',
 };
 
 type ProductSales = {
@@ -78,7 +82,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadData();
@@ -358,7 +362,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
-
-    
