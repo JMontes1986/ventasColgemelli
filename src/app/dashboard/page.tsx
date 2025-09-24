@@ -58,6 +58,15 @@ type ProductSales = {
     }
 }
 
+type SellerSales = {
+    [sellerId: string]: {
+        name: string;
+        totalRevenue: number;
+        transactionCount: number;
+    }
+}
+
+
 export default function Dashboard() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -137,6 +146,25 @@ export default function Dashboard() {
 
 
   const sortedProductSales = Object.entries(productSales).sort(([,a],[,b]) => b.netRevenue - a.netRevenue);
+
+  const sellerSales = paidPurchases
+    .filter(p => p.sellerId)
+    .reduce((acc, p) => {
+        if (p.sellerId) {
+            if (!acc[p.sellerId]) {
+                acc[p.sellerId] = {
+                    name: p.sellerName || 'Desconocido',
+                    totalRevenue: 0,
+                    transactionCount: 0
+                };
+            }
+            acc[p.sellerId].totalRevenue += p.total;
+            acc[p.sellerId].transactionCount += 1;
+        }
+        return acc;
+    }, {} as SellerSales);
+
+  const sortedSellerSales = Object.entries(sellerSales).sort(([,a],[,b]) => b.totalRevenue - a.totalRevenue);
 
   const handleExportCSV = () => {
     if (sortedProductSales.length === 0) {
@@ -306,7 +334,47 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="mt-8">
+      <div className="grid gap-8 md:grid-cols-2 mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Ventas por Vendedor</CardTitle>
+            <CardDescription>
+                Rendimiento de ventas por cada vendedor en caja.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+             {isLoading ? (
+                <div className="h-24 text-center flex items-center justify-center">Calculando...</div>
+            ) : (
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Vendedor</TableHead>
+                    <TableHead>Nº de Ventas</TableHead>
+                    <TableHead className="text-right">Ingresos (COP)</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {sortedSellerSales.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={3} className="h-24 text-center">
+                                No hay ventas registradas por vendedores.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        sortedSellerSales.map(([sellerId, data]) => (
+                        <TableRow key={sellerId}>
+                            <TableCell className="font-medium">{data.name}</TableCell>
+                            <TableCell>{data.transactionCount}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(data.totalRevenue)}</TableCell>
+                        </TableRow>
+                        ))
+                    )}
+                </TableBody>
+                </Table>
+            )}
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Ventas Recientes</CardTitle>
