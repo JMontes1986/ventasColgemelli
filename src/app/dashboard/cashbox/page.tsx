@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useState } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +31,21 @@ const currentSession: CashboxSession | undefined = undefined; // No current sess
 const cashboxSessions: CashboxSession[] = []; // No sessions by default
 
 export default function CashboxPage() {
+    const [openingBalance, setOpeningBalance] = useState("");
+
+    const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Remove non-digit characters
+        const rawValue = e.target.value.replace(/[^0-9]/g, '');
+        const numericValue = parseInt(rawValue, 10);
+
+        if (isNaN(numericValue)) {
+            setOpeningBalance("");
+        } else {
+            // Format with thousand separators for display
+            setOpeningBalance(new Intl.NumberFormat('es-CO').format(numericValue));
+        }
+    };
+
     return (
         <div>
             <PageHeader
@@ -73,7 +91,13 @@ export default function CashboxPage() {
                                 <CardContent>
                                     <div className="space-y-2">
                                         <Label htmlFor="opening-balance">Saldo de Apertura</Label>
-                                        <Input id="opening-balance" type="number" placeholder="100000" />
+                                        <Input 
+                                            id="opening-balance" 
+                                            type="text" 
+                                            placeholder="100.000" 
+                                            value={openingBalance}
+                                            onChange={handleBalanceChange}
+                                        />
                                     </div>
                                 </CardContent>
                                 <CardFooter>
