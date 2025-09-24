@@ -78,15 +78,6 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       
       const counterDoc = await transaction.get(counterRef);
 
-      // Pre-read the cashbox session if needed
-      let cashboxQuery;
-      if (purchase.sellerId) {
-        const sessionsCol = collection(db, 'cashboxSessions');
-        cashboxQuery = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
-        await transaction.get(cashboxQuery); // Perform the read inside transaction
-      }
-
-
       // --- VALIDATION AND PREPARATION phase ---
 
       // Validate products and prepare stock updates
@@ -123,8 +114,8 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       // --- ALL WRITES HAPPEN HERE ---
 
       // If it's a POS sale, it must be linked to an active cashbox session
-      if (purchase.sellerId && cashboxQuery) {
-        addSaleToCashbox(transaction, purchase.sellerId, purchase.total, cashboxQuery);
+      if (purchase.sellerId) {
+        await addSaleToCashbox(transaction, purchase.sellerId, purchase.total);
       }
 
       // 2. WRITE phase: Commit all changes to the database.
@@ -317,14 +308,6 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
 
         const purchaseData = purchaseDoc.data() as Purchase;
 
-        // Pre-read cashbox session
-        let cashboxQuery;
-        if (currentUser) {
-            const sessionsCol = collection(db, 'cashboxSessions');
-            cashboxQuery = query(sessionsCol, where("userId", "==", currentUser.id), where("status", "==", "open"), limit(1));
-            await transaction.get(cashboxQuery);
-        }
-
         // Increase stock for each item in the pre-sale
         for (const item of purchaseData.items) {
             const productRef = doc(db, "products", item.id);
@@ -332,8 +315,8 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
         }
         
         // This is a POS action, so it must be linked to an active cashbox session
-        if (currentUser && cashboxQuery) {
-            addSaleToCashbox(transaction, currentUser.id, purchaseData.total, cashboxQuery);
+        if (currentUser) {
+            await addSaleToCashbox(transaction, currentUser.id, purchaseData.total);
         }
 
         // Update purchase status
