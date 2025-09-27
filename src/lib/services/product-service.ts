@@ -1,7 +1,8 @@
 
+
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, runTransaction, increment, getDoc, writeBatch, orderBy } from "firebase/firestore";
-import type { Product, User } from "@/lib/types";
+import type { Product, User, ProductAvailability } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
 
 // Type for creating a new product, ID is optional as Firestore will generate it
@@ -16,7 +17,6 @@ export async function getProducts(): Promise<Product[]> {
   const productList = productSnapshot.docs.map(doc => ({ 
       id: doc.id, 
       ...doc.data(),
-      isPosAvailable: doc.data().isPosAvailable ?? true,
       position: doc.data().position ?? 0, // Ensure position exists
   } as Product));
   
@@ -26,25 +26,19 @@ export async function getProducts(): Promise<Product[]> {
   return productList;
 }
 
-// Function to get only products marked for self-service
-export async function getSelfServiceProducts(): Promise<Product[]> {
-  const productsCol = collection(db, 'products');
-  // Query for products that are marked for self-service
-  const q = query(
-    productsCol, 
-    where("isSelfService", "==", true)
-  );
-  const productSnapshot = await getDocs(q);
-  const productList = productSnapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data(),
-      position: doc.data().position ?? 0,
-  } as Product));
-
-  // Sort client-side
-  productList.sort((a, b) => a.position - b.position);
-
-  return productList;
+// Function to get products based on their availability
+export async function getProductsByAvailability(availability: ProductAvailability): Promise<Product[]> {
+    const productsCol = collection(db, 'products');
+    const q = query(productsCol, where("availability", "==", availability));
+    const productSnapshot = await getDocs(q);
+    const productList = productSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        position: doc.data().position ?? 0,
+    } as Product));
+    
+    productList.sort((a, b) => a.position - b.position);
+    return productList;
 }
 
 // Function to add a new product to Firestore
@@ -73,8 +67,7 @@ export async function addProductWithId(product: Product): Promise<void> {
         stock: product.stock,
         imageUrl: product.imageUrl,
         imageHint: product.imageHint,
-        isSelfService: product.isSelfService ?? false,
-        isPosAvailable: product.isPosAvailable ?? true,
+        availability: product.availability || 'pos',
         restockCount: product.restockCount || 0,
         preSaleSold: product.preSaleSold || 0,
         position: product.position || 0,

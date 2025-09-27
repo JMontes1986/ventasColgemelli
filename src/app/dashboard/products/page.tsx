@@ -20,11 +20,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store, Plus, PackagePlus, ClipboardCheck, GripVertical } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Database, Trash2, Pencil, ShoppingCart, Store, Plus, PackagePlus, ClipboardCheck, GripVertical, Ticket } from "lucide-react";
 import { PermissionGate } from "@/components/permission-gate";
 import Image from "next/image";
 import { mockProducts } from "@/lib/placeholder-data";
-import type { Product, User } from "@/lib/types";
+import type { Product, User, ProductAvailability } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,13 @@ import {
 import { formatCurrency, cn } from "@/lib/utils";
 import { getProducts, addProduct, addProductWithId, type NewProduct, updateProduct, increaseProductStock, updateProductOrder } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
-import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 import {
@@ -59,6 +65,12 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+const availabilityOptions: { value: ProductAvailability; label: string; icon: React.ElementType }[] = [
+    { value: 'pos', label: 'Punto de Venta', icon: Store },
+    { value: 'self-service', label: 'Autogestión (en sitio)', icon: ShoppingCart },
+    { value: 'presale', label: 'Preventa (remoto)', icon: Ticket },
+];
+
 function ProductForm({ 
     mode, 
     initialData,
@@ -75,8 +87,7 @@ function ProductForm({
     const [price, setPrice] = useState(initialData?.price.toString() || '');
     const [stock, setStock] = useState(initialData?.stock.toString() || '');
     const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
-    const [isSelfService, setIsSelfService] = useState(initialData?.isSelfService || false);
-    const [isPosAvailable, setIsPosAvailable] = useState(initialData?.isPosAvailable ?? true);
+    const [availability, setAvailability] = useState<ProductAvailability>(initialData?.availability || 'pos');
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
@@ -85,8 +96,7 @@ function ProductForm({
             setPrice(initialData.price.toString());
             setStock(initialData.stock.toString());
             setImageUrl(initialData.imageUrl);
-            setIsSelfService(initialData.isSelfService);
-            setIsPosAvailable(initialData.isPosAvailable ?? true);
+            setAvailability(initialData.availability);
         }
     }, [initialData, mode]);
 
@@ -99,8 +109,7 @@ function ProductForm({
                 setPrice('');
                 setStock('');
                 setImageUrl('');
-                setIsSelfService(false);
-                setIsPosAvailable(true);
+                setAvailability('pos');
             }
         } else {
              if (mode === 'edit' && initialData) {
@@ -108,15 +117,13 @@ function ProductForm({
                 setPrice(initialData.price.toString());
                 setStock(initialData.stock.toString());
                 setImageUrl(initialData.imageUrl);
-                setIsSelfService(initialData.isSelfService);
-                setIsPosAvailable(initialData.isPosAvailable ?? true);
+                setAvailability(initialData.availability);
             } else {
                 setName('');
                 setPrice('');
                 setStock('');
                 setImageUrl('');
-                setIsSelfService(false);
-                setIsPosAvailable(true);
+                setAvailability('pos');
             }
         }
     };
@@ -132,8 +139,7 @@ function ProductForm({
                 stock: parseInt(stock, 10),
                 imageUrl: imageUrl || `https://picsum.photos/seed/${name.replace(/\s/g, '')}/400/400`,
                 imageHint: name.toLowerCase().split(' ').slice(0,2).join(' '),
-                isSelfService,
-                isPosAvailable,
+                availability,
             };
 
             try {
@@ -152,8 +158,7 @@ function ProductForm({
                 stock: parseInt(stock, 10),
                 imageUrl,
                 imageHint: name.toLowerCase().split(' ').slice(0,2).join(' '),
-                isSelfService,
-                isPosAvailable,
+                availability,
                 position: initialData.position,
             };
             try {
@@ -212,16 +217,18 @@ function ProductForm({
                             <Label htmlFor="product-image-url">URL de la Imagen</Label>
                             <Input id="product-image-url" placeholder="https://ejemplo.com/imagen.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
                         </div>
-                        <div className="space-y-2">
-                            <Label>Disponibilidad</Label>
-                            <div className="flex items-center space-x-2">
-                                <Switch id="is-pos-available" checked={isPosAvailable} onCheckedChange={setIsPosAvailable} />
-                                <Label htmlFor="is-pos-available">Punto de Venta (Caja)</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Switch id="is-self-service" checked={isSelfService} onCheckedChange={setIsSelfService} />
-                                <Label htmlFor="is-self-service">Autoservicio</Label>
-                            </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="product-availability">Disponibilidad</Label>
+                            <Select value={availability} onValueChange={(value) => setAvailability(value as ProductAvailability)}>
+                                <SelectTrigger id="product-availability">
+                                    <SelectValue placeholder="Seleccione disponibilidad..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availabilityOptions.map(opt => (
+                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </form>
@@ -335,6 +342,10 @@ function SortableProductCard({ product, onProductUpdated, onProductAdded }: { pr
         transition,
     };
 
+    const availabilityConfig = availabilityOptions.find(opt => opt.value === product.availability);
+    const AvailabilityIcon = availabilityConfig?.icon || Store;
+
+
     return (
         <div ref={setNodeRef} style={style} className="touch-none">
             <Card
@@ -385,20 +396,12 @@ function SortableProductCard({ product, onProductUpdated, onProductAdded }: { pr
                 <CardContent className="p-4">
                     <div className="flex justify-between items-start gap-2">
                         <h3 className="text-lg font-semibold">{product.name}</h3>
-                        <div className="flex flex-col items-end gap-1">
-                            {product.isPosAvailable && (
-                                <Badge variant="secondary" className="flex items-center gap-1">
-                                    <Store className="h-3 w-3" />
-                                    <span>Caja</span>
-                                </Badge>
-                            )}
-                            {product.isSelfService && (
-                                <Badge variant="outline" className="flex items-center gap-1 border-blue-300 text-blue-700">
-                                    <ShoppingCart className="h-3 w-3" />
-                                    <span>Autoservicio</span>
-                                </Badge>
-                            )}
-                        </div>
+                        {availabilityConfig && (
+                             <Badge variant="secondary" className="flex items-center gap-1">
+                                <AvailabilityIcon className="h-3 w-3" />
+                                <span>{availabilityConfig.label}</span>
+                            </Badge>
+                        )}
                     </div>
                     <div className="flex justify-between items-center mt-2">
                         <span className="text-xl font-bold">{formatCurrency(product.price)}</span>

@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Ticket as TicketIcon, Hourglass, Search, XCircle } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
-import { getProducts } from '@/lib/services/product-service';
+import { getProductsByAvailability } from '@/lib/services/product-service';
 import { addPurchase, getPurchases, type NewPurchase, cancelPurchaseAndUpdateStock } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useMockAuth } from '@/hooks/use-mock-auth';
@@ -69,10 +69,10 @@ export default function SalesPage() {
     setIsLoading(true);
     try {
         const [fetchedProducts, fetchedPurchases] = await Promise.all([
-            getProducts(),
+            getProductsByAvailability('pos'),
             getPurchases(),
         ]);
-        setProducts(fetchedProducts.filter(p => p.isPosAvailable));
+        setProducts(fetchedProducts);
         setPurchases(fetchedPurchases);
     } catch (error) {
         console.error("Error fetching data:", error);
