@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/dialog";
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
-import { sendWhatsAppNotification } from '@/app/actions';
 
 type CartItem = {
   id: string;
@@ -173,15 +172,6 @@ export default function PreSalePage() {
         setIsConfirmationOpen(true);
         toast({ title: "Preventa Exitosa", description: "La preventa ha sido registrada correctamente." });
         
-        // Send WhatsApp notification in the background
-        sendWhatsAppNotification(addedPurchase, customerCelular).then(success => {
-            if (success) {
-                toast({ title: "Notificación Enviada", description: "Se envió el comprobante por WhatsApp al cliente." });
-            } else {
-                 toast({ variant: "destructive", title: "Error de Notificación", description: "No se pudo enviar el comprobante por WhatsApp. Verifique las credenciales y el formato del número." });
-            }
-        });
-
         clearCart();
         loadData(); // Refresh recent presales
     } catch (error) {
