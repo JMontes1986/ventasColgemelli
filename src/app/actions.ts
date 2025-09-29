@@ -17,19 +17,22 @@ async function getClientifyAuthToken(): Promise<string | null> {
         console.error("CLIENTIFY_USERNAME or CLIENTIFY_PASSWORD not set in environment variables.");
         return null;
     }
+    
+    console.log(`Attempting to get Clientify token for user: ${username}`);
 
     try {
         const response = await fetch('https://api.clientify.net/v1/api-auth/obtain_token/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
+            cache: 'no-store', // Ensure no caching
         });
 
         const data = await response.json();
 
         if (!response.ok || !data.token) {
             console.error("Failed to obtain Clientify token. Response Status:", response.status);
-            console.error("Response Body:", data);
+            console.error("Response Body:", data); // Log the full error response from Clientify
             return null;
         }
 
@@ -61,9 +64,7 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
   if (formattedTo.startsWith('+')) {
       formattedTo = formattedTo.substring(1);
   }
-  if (formattedTo.startsWith('57')) {
-      // If it already starts with 57, do nothing to avoid 5757...
-  } else {
+  if (!formattedTo.startsWith('57')) {
       formattedTo = `57${formattedTo}`;
   }
   
