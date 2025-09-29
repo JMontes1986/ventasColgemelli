@@ -6,36 +6,37 @@ import { formatPurchaseForWhatsApp } from '@/lib/services/clientify-service';
 
 /**
  * Obtains an authentication token from the Clientify API.
- * The credentials (username and password) must be stored in environment variables.
+ * The credentials must be stored in environment variables with NEXT_PUBLIC_ prefix.
  * @returns {Promise<string | null>} The authentication token or null if failed.
  */
 async function getClientifyAuthToken(): Promise<string | null> {
-    const username = process.env.CLIENTIFY_USERNAME;
-    const password = process.env.CLIENTIFY_PASSWORD;
+    const username = process.env.NEXT_PUBLIC_CLIENTIFY_USERNAME;
+    const password = process.env.NEXT_PUBLIC_CLIENTIFY_PASSWORD;
 
+    console.log(`Attempting to get Clientify token for user: ${username}`);
+    
     if (!username || !password) {
-        console.error("CLIENTIFY_USERNAME or CLIENTIFY_PASSWORD not set in environment variables.");
+        console.error("Clientify credentials (NEXT_PUBLIC_CLIENTIFY_USERNAME or NEXT_PUBLIC_CLIENTIFY_PASSWORD) are not set in .env.local file.");
         return null;
     }
-    
-    console.log(`Attempting to get Clientify token for user: ${username}`);
 
     try {
         const response = await fetch('https://api.clientify.net/v1/api-auth/obtain_token/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
-            cache: 'no-store', // Ensure no caching
+            cache: 'no-store',
         });
 
         const data = await response.json();
 
         if (!response.ok || !data.token) {
             console.error("Failed to obtain Clientify token. Response Status:", response.status);
-            console.error("Response Body:", data); // Log the full error response from Clientify
+            console.error("Response Body:", data);
             return null;
         }
 
+        console.log("Successfully obtained Clientify token.");
         return data.token;
 
     } catch (error) {
@@ -60,13 +61,12 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
   }
 
   // Ensure the number has the Colombian country code prefix and is clean
-  let formattedTo = to.trim().replace(/\s+/g, ''); // Remove spaces and non-numeric chars
-  if (formattedTo.startsWith('+')) {
-      formattedTo = formattedTo.substring(1);
+  let formattedTo = to.trim().replace(/\D/g, ''); // Remove all non-digit characters
+  if (formattedTo.length > 10) {
+      // If number includes country code, take the last 10 digits
+      formattedTo = formattedTo.slice(-10);
   }
-  if (!formattedTo.startsWith('57')) {
-      formattedTo = `57${formattedTo}`;
-  }
+  formattedTo = `57${formattedTo}`;
   
   const API_URL = 'https://api.clientify.net/v1/whatsapp/messages/send/';
 
@@ -90,7 +90,7 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
       return false;
     }
     
-    console.log("WhatsApp message sent successfully via Clientify.");
+    console.log(`WhatsApp message sent successfully via Clientify to ${formattedTo}.`);
     return true;
 
   } catch (error) {
