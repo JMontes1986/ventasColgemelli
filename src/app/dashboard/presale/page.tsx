@@ -331,14 +331,21 @@ export default function PreSalePage() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="customer-celular" className="text-white">Celular (para WhatsApp)</Label>
-                                <Input 
-                                    id="customer-celular"
-                                    value={customerCelular}
-                                    onChange={(e) => setCustomerCelular(e.target.value)}
-                                    className="bg-blue-900 border-blue-700 text-white"
-                                    placeholder="Ej: 3001234567"
-                                    required
-                                />
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white">
+                                        +57
+                                    </span>
+                                    <Input 
+                                        id="customer-celular"
+                                        type="tel"
+                                        value={customerCelular}
+                                        onChange={(e) => setCustomerCelular(e.target.value.replace(/[^0-9]/g, ''))}
+                                        className="bg-blue-900 border-blue-700 text-white pl-12"
+                                        placeholder="3001234567"
+                                        required
+                                        maxLength={10}
+                                    />
+                                </div>
                             </div>
                             <div className="flex justify-between font-bold border-t border-blue-800 pt-4 mt-4">
                                 <span>TOTAL</span>

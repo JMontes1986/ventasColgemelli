@@ -57,11 +57,13 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
   }
 
   // Ensure the number has the Colombian country code prefix and is clean
-  let formattedTo = to.trim().replace(/\s+/g, ''); // Remove spaces
+  let formattedTo = to.trim().replace(/\s+/g, ''); // Remove spaces and non-numeric chars
   if (formattedTo.startsWith('+')) {
       formattedTo = formattedTo.substring(1);
   }
-  if (!formattedTo.startsWith('57')) {
+  if (formattedTo.startsWith('57')) {
+      // If it already starts with 57, do nothing to avoid 5757...
+  } else {
       formattedTo = `57${formattedTo}`;
   }
   
