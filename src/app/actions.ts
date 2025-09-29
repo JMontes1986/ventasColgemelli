@@ -1,32 +1,96 @@
 
 'use server';
 
-import 'dotenv/config'; // Load environment variables
 import type { Purchase } from '@/lib/types';
-import { sendWhatsAppMessage } from '@/lib/services/clientify-service';
-import { formatCurrency } from '@/lib/utils';
+import { formatPurchaseForWhatsApp } from '@/lib/services/clientify-service';
 
 /**
- * Formats the purchase details into a user-friendly WhatsApp message.
- * @param {Purchase} purchase - The purchase object.
- * @returns {string} The formatted message.
+ * Obtains an authentication token from the Clientify API.
+ * The credentials (username and password) must be stored in environment variables.
+ * @returns {Promise<string | null>} The authentication token or null if failed.
  */
-function formatPurchaseForWhatsApp(purchase: Purchase): string {
-    let message = `¡Preventa Registrada Exitosamente!\n\n`;
-    message += `Hola, gracias por tu compra en el Colegio Gemelli. Presenta este código en caja para pagar y reclamar tus productos.\n\n`;
-    message += `*Código de Preventa:* ${purchase.id}\n`;
-    message += `*Fecha:* ${purchase.date}\n`;
-    message += `*Cliente C.C:* ${purchase.cedula}\n\n`;
-    message += `*Resumen de la Compra:*\n`;
-    
-    purchase.items.forEach(item => {
-        message += `• ${item.name} (x${item.quantity}) - ${formatCurrency(item.price * item.quantity)}\n`;
+async function getClientifyAuthToken(): Promise<string | null> {
+    const username = process.env.CLIENTIFY_USERNAME;
+    const password = process.env.CLIENTIFY_PASSWORD;
+
+    if (!username || !password) {
+        console.error("CLIENTIFY_USERNAME or CLIENTIFY_PASSWORD not set in environment variables.");
+        return null;
+    }
+
+    try {
+        const response = await fetch('https://api.clientify.net/v1/api-auth/obtain_token/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.token) {
+            console.error("Failed to obtain Clientify token. Response:", response.status, data);
+            return null;
+        }
+
+        return data.token;
+
+    } catch (error) {
+        console.error("Error fetching Clientify token:", error);
+        return null;
+    }
+}
+
+/**
+ * Sends a WhatsApp message using the Clientify API.
+ * It first obtains an auth token and then sends the message.
+ * @param {string} to - The recipient's phone number.
+ * @param {string} message - The message content.
+ * @returns {Promise<boolean>} True if the message was sent successfully, false otherwise.
+ */
+async function sendWhatsAppMessage(to: string, message: string): Promise<boolean> {
+  const token = await getClientifyAuthToken();
+
+  if (!token) {
+    console.error("Cannot send WhatsApp message without a valid Clientify token.");
+    return false;
+  }
+
+  // Ensure the number has the Colombian country code prefix
+  let formattedTo = to.trim();
+  if (!formattedTo.startsWith('57') && formattedTo.length === 10) {
+      formattedTo = `57${formattedTo}`;
+  } else if (formattedTo.startsWith('+57')) {
+      formattedTo = formattedTo.substring(1);
+  }
+  
+  const API_URL = 'https://api.clientify.net/v1/whatsapp/messages/send/';
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify({
+        phone: formattedTo,
+        message: message,
+      }),
     });
 
-    message += `\n*Total a Pagar:* ${formatCurrency(purchase.total)}\n\n`;
-    message += `¡Te esperamos!`;
+    if (!response.ok) {
+      const errorBody = await response.json();
+      console.error("Failed to send WhatsApp message via Clientify:", response.status, errorBody);
+      return false;
+    }
+    
+    console.log("WhatsApp message sent successfully via Clientify.");
+    return true;
 
-    return message;
+  } catch (error) {
+    console.error("Error during Clientify send request:", error);
+    return false;
+  }
 }
 
 
