@@ -177,7 +177,7 @@ export default function PreSalePage() {
             if (success) {
                 toast({ title: "Notificación Enviada", description: "Se envió el comprobante por WhatsApp al cliente." });
             } else {
-                 toast({ variant: "destructive", title: "Error de Notificación", description: "No se pudo enviar el comprobante por WhatsApp." });
+                 toast({ variant: "destructive", title: "Error de Notificación", description: "No se pudo enviar el comprobante por WhatsApp. Verifique las credenciales de Clientify." });
             }
         });
 

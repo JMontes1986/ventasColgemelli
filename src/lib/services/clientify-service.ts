@@ -26,13 +26,13 @@ async function getAuthToken(): Promise<string | null> {
             }),
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            const errorBody = await response.json();
-            console.error("Failed to obtain Clientify token:", response.status, errorBody);
+            console.error("Failed to obtain Clientify token. Response:", response.status, data);
             return null;
         }
 
-        const data = await response.json();
         return data.token;
 
     } catch (error) {
