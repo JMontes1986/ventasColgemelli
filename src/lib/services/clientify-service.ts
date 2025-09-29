@@ -56,6 +56,16 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     console.error("Cannot send WhatsApp message without a valid Clientify token.");
     return false;
   }
+
+  // Ensure the number has the Colombian country code prefix
+  let formattedTo = to.trim();
+  if (!formattedTo.startsWith('+57')) {
+      if (formattedTo.length === 10) {
+        formattedTo = `+57${formattedTo}`;
+      } else {
+         console.warn(`Phone number ${to} might not be in the correct format.`);
+      }
+  }
   
   // The API endpoint for sending messages might be different, this is a common pattern.
   // Please adjust the URL if Clientify's documentation specifies a different one.
@@ -69,7 +79,7 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
         'Authorization': `Token ${token}`,
       },
       body: JSON.stringify({
-        phone: to,
+        phone: formattedTo,
         message: message,
       }),
     });

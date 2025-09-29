@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
+import { sendWhatsAppNotification } from '@/app/actions';
 
 type CartItem = {
   id: string;
@@ -64,6 +65,7 @@ export default function PreSalePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [customerIdentifier, setCustomerIdentifier] = useState('');
+  const [customerCelular, setCustomerCelular] = useState('');
   const { toast } = useToast();
   const { currentUser } = useMockAuth();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -135,6 +137,7 @@ export default function PreSalePage() {
   const clearCart = () => {
     setCart([]);
     setCustomerIdentifier('');
+    setCustomerCelular('');
   };
 
   const handlePreSale = async () => {
@@ -146,6 +149,10 @@ export default function PreSalePage() {
         toast({ variant: "destructive", title: "Error", description: "Debe ingresar la cédula o código del estudiante." });
         return;
     }
+     if (!customerCelular) {
+        toast({ variant: "destructive", title: "Error", description: "Debe ingresar el número de celular del cliente." });
+        return;
+    }
     setIsProcessing(true);
 
     const newPreSaleData: NewPurchase = {
@@ -153,7 +160,7 @@ export default function PreSalePage() {
         total: subtotal,
         items: cart.map(({ stock, ...item }) => item),
         cedula: customerIdentifier,
-        celular: 'N/A', 
+        celular: customerCelular,
         sellerId: currentUser?.id,
         sellerName: currentUser?.name,
         status: 'pre-sale',
@@ -164,6 +171,16 @@ export default function PreSalePage() {
         setLastPurchase(addedPurchase);
         setIsConfirmationOpen(true);
         toast({ title: "Preventa Exitosa", description: "La preventa ha sido registrada correctamente." });
+        
+        // Send WhatsApp notification in the background
+        sendWhatsAppNotification(addedPurchase, customerCelular).then(success => {
+            if (success) {
+                toast({ title: "Notificación Enviada", description: "Se envió el comprobante por WhatsApp al cliente." });
+            } else {
+                 toast({ variant: "destructive", title: "Error de Notificación", description: "No se pudo enviar el comprobante por WhatsApp." });
+            }
+        });
+
         clearCart();
         loadData(); // Refresh recent presales
     } catch (error) {
@@ -308,6 +325,17 @@ export default function PreSalePage() {
                                     onChange={(e) => setCustomerIdentifier(e.target.value)}
                                     className="bg-blue-900 border-blue-700 text-white"
                                     placeholder="Ingrese identificación..."
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="customer-celular" className="text-white">Celular (para WhatsApp)</Label>
+                                <Input 
+                                    id="customer-celular"
+                                    value={customerCelular}
+                                    onChange={(e) => setCustomerCelular(e.target.value)}
+                                    className="bg-blue-900 border-blue-700 text-white"
+                                    placeholder="Ej: 3001234567"
                                     required
                                 />
                             </div>
