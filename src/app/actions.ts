@@ -28,7 +28,8 @@ async function getClientifyAuthToken(): Promise<string | null> {
         const data = await response.json();
 
         if (!response.ok || !data.token) {
-            console.error("Failed to obtain Clientify token. Response:", response.status, data);
+            console.error("Failed to obtain Clientify token. Response Status:", response.status);
+            console.error("Response Body:", data);
             return null;
         }
 
@@ -55,12 +56,13 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
     return false;
   }
 
-  // Ensure the number has the Colombian country code prefix
-  let formattedTo = to.trim();
-  if (!formattedTo.startsWith('57') && formattedTo.length === 10) {
-      formattedTo = `57${formattedTo}`;
-  } else if (formattedTo.startsWith('+57')) {
+  // Ensure the number has the Colombian country code prefix and is clean
+  let formattedTo = to.trim().replace(/\s+/g, ''); // Remove spaces
+  if (formattedTo.startsWith('+')) {
       formattedTo = formattedTo.substring(1);
+  }
+  if (!formattedTo.startsWith('57')) {
+      formattedTo = `57${formattedTo}`;
   }
   
   const API_URL = 'https://api.clientify.net/v1/whatsapp/messages/send/';
@@ -80,7 +82,8 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
 
     if (!response.ok) {
       const errorBody = await response.json();
-      console.error("Failed to send WhatsApp message via Clientify:", response.status, errorBody);
+      console.error("Failed to send WhatsApp message via Clientify. Status:", response.status);
+      console.error("Error Body:", errorBody);
       return false;
     }
     
