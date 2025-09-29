@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -428,7 +429,7 @@ export default function PreSalePage() {
                         <Logo className="h-auto w-48" />
                     </div>
                     <DialogTitle className="text-center text-2xl">¡Preventa Registrada!</DialogTitle>
-                    <CardDescription className="text-center">Entregue este comprobante al padre de familia para confirmar y pagar la preventa en caja.</CardDescription>
+                    <DialogDescription className="text-center">Entregue este comprobante al padre de familia para confirmar y pagar la preventa en caja.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                     <div className="text-center">

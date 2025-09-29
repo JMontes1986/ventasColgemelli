@@ -497,6 +497,9 @@ export default function SelfServicePage() {
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingPurchase ? 'Compra Actualizada' : 'Código de Pago Generado'}</DialogTitle>
+            <DialogDesc>
+              Este es el comprobante de su compra.
+            </DialogDesc>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-md border border-yellow-200 dark:border-yellow-800">
