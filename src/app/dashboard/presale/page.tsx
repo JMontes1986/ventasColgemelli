@@ -37,8 +37,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import Link from 'next/link';
 import { Logo } from '@/components/icons';

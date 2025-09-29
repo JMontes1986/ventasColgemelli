@@ -6,17 +6,17 @@ import { formatPurchaseForWhatsApp } from '@/lib/services/clientify-service';
 
 /**
  * Obtains an authentication token from the Clientify API.
- * The credentials must be stored in environment variables with NEXT_PUBLIC_ prefix.
+ * The credentials must be stored in environment variables.
  * @returns {Promise<string | null>} The authentication token or null if failed.
  */
 async function getClientifyAuthToken(): Promise<string | null> {
-    const username = process.env.NEXT_PUBLIC_CLIENTIFY_USERNAME;
-    const password = process.env.NEXT_PUBLIC_CLIENTIFY_PASSWORD;
+    const username = process.env.CLIENTIFY_USERNAME;
+    const password = process.env.CLIENTIFY_PASSWORD;
 
     console.log(`Attempting to get Clientify token for user: ${username}`);
     
     if (!username || !password) {
-        console.error("Clientify credentials (NEXT_PUBLIC_CLIENTIFY_USERNAME or NEXT_PUBLIC_CLIENTIFY_PASSWORD) are not set in .env.local file.");
+        console.error("Clientify credentials (CLIENTIFY_USERNAME or CLIENTIFY_PASSWORD) are not set in .env.local file.");
         return null;
     }
 
@@ -66,7 +66,10 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
       // If number includes country code, take the last 10 digits
       formattedTo = formattedTo.slice(-10);
   }
-  formattedTo = `57${formattedTo}`;
+  
+  if (!formattedTo.startsWith('57')) {
+    formattedTo = `57${formattedTo}`;
+  }
   
   const API_URL = 'https://api.clientify.net/v1/whatsapp/messages/send/';
 
