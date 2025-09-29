@@ -1,0 +1,90 @@
+// This service handles interactions with the Clientify API.
+
+/**
+ * Obtains an authentication token from the Clientify API.
+ * The credentials (username and password) must be stored in environment variables.
+ * @returns {Promise<string | null>} The authentication token or null if failed.
+ */
+async function getAuthToken(): Promise<string | null> {
+    const username = process.env.CLIENTIFY_USERNAME;
+    const password = process.env.CLIENTIFY_PASSWORD;
+
+    if (!username || !password) {
+        console.error("Clientify username or password not set in environment variables.");
+        return null;
+    }
+
+    try {
+        const response = await fetch('https://api.clientify.net/v1/api-auth/obtain_token/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json();
+            console.error("Failed to obtain Clientify token:", response.status, errorBody);
+            return null;
+        }
+
+        const data = await response.json();
+        return data.token;
+
+    } catch (error) {
+        console.error("Error fetching Clientify token:", error);
+        return null;
+    }
+}
+
+
+/**
+ * Sends a WhatsApp message using the Clientify API.
+ * It first obtains an auth token and then sends the message.
+ * @param {string} to - The recipient's phone number.
+ * @param {string} message - The message content.
+ * @returns {Promise<boolean>} True if the message was sent successfully, false otherwise.
+ */
+export async function sendWhatsAppMessage(to: string, message: string): Promise<boolean> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    console.error("Cannot send WhatsApp message without a valid Clientify token.");
+    return false;
+  }
+  
+  // The API endpoint for sending messages might be different, this is a common pattern.
+  // Please adjust the URL if Clientify's documentation specifies a different one.
+  const API_URL = 'https://api.clientify.net/v1/whatsapp/messages/send';
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify({
+        phone: to,
+        message: message,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json();
+      console.error("Failed to send WhatsApp message:", response.status, errorBody);
+      return false;
+    }
+    
+    console.log("WhatsApp message sent successfully via Clientify.");
+    return true;
+
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    return false;
+  }
+}
