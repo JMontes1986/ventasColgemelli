@@ -14,11 +14,18 @@ export async function getProducts(): Promise<Product[]> {
   const productsCol = collection(db, 'products');
   // We fetch without ordering first, to avoid issues with missing fields
   const productSnapshot = await getDocs(productsCol);
-  const productList = productSnapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data(),
-      position: doc.data().position ?? 0, // Ensure position exists
-  } as Product));
+  const productList = productSnapshot.docs.map(doc => {
+      const data = doc.data();
+      // Ensure availability is always an array for backward compatibility
+      const availability = Array.isArray(data.availability) ? data.availability : (data.availability ? [data.availability] : []);
+      
+      return { 
+          id: doc.id, 
+          ...data,
+          availability,
+          position: data.position ?? 0, // Ensure position exists
+      } as Product
+  });
   
   // Sort client-side for robustness
   productList.sort((a, b) => a.position - b.position);
@@ -29,7 +36,7 @@ export async function getProducts(): Promise<Product[]> {
 // Function to get products based on their availability
 export async function getProductsByAvailability(availability: ProductAvailability): Promise<Product[]> {
     const productsCol = collection(db, 'products');
-    const q = query(productsCol, where("availability", "==", availability));
+    const q = query(productsCol, where("availability", "array-contains", availability));
     const productSnapshot = await getDocs(q);
     const productList = productSnapshot.docs.map(doc => ({
         id: doc.id,
@@ -61,13 +68,15 @@ export async function addProduct(product: NewProduct): Promise<Product> {
 // Function to add a product with a specific ID (for seeding)
 export async function addProductWithId(product: Product): Promise<void> {
     const productRef = doc(db, 'products', product.id);
+    // Ensure availability is an array for seeding
+    const availability = Array.isArray(product.availability) ? product.availability : [product.availability];
     await setDoc(productRef, {
         name: product.name,
         price: product.price,
         stock: product.stock,
         imageUrl: product.imageUrl,
         imageHint: product.imageHint,
-        availability: product.availability || 'pos',
+        availability: availability,
         restockCount: product.restockCount || 0,
         preSaleSold: product.preSaleSold || 0,
         position: product.position || 0,
@@ -115,3 +124,5 @@ export async function updateProductOrder(products: Product[]): Promise<void> {
     });
     await batch.commit();
 }
+
+    

@@ -38,13 +38,6 @@ import {
 import { formatCurrency, cn } from "@/lib/utils";
 import { getProducts, addProduct, addProductWithId, type NewProduct, updateProduct, increaseProductStock, updateProductOrder } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useMockAuth } from "@/hooks/use-mock-auth";
 import {
@@ -64,12 +57,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Checkbox } from "@/components/ui/checkbox";
 
-const availabilityOptions: { value: ProductAvailability; label: string; icon: React.ElementType }[] = [
-    { value: 'pos', label: 'Punto de Venta', icon: Store },
-    { value: 'self-service', label: 'Autogestión (en sitio)', icon: ShoppingCart },
-    { value: 'presale', label: 'Preventa (remoto)', icon: Ticket },
-];
+const availabilityMap: Record<ProductAvailability, { label: string; icon: React.ElementType }> = {
+    'pos': { label: 'Punto de Venta', icon: Store },
+    'self-service': { label: 'Autogestión', icon: ShoppingCart },
+    'presale': { label: 'Preventa', icon: Ticket },
+};
 
 function ProductForm({ 
     mode, 
@@ -87,7 +81,7 @@ function ProductForm({
     const [price, setPrice] = useState(initialData?.price.toString() || '');
     const [stock, setStock] = useState(initialData?.stock.toString() || '');
     const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
-    const [availability, setAvailability] = useState<ProductAvailability>(initialData?.availability || 'pos');
+    const [availability, setAvailability] = useState<ProductAvailability[]>(initialData?.availability || []);
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
@@ -96,20 +90,19 @@ function ProductForm({
             setPrice(initialData.price.toString());
             setStock(initialData.stock.toString());
             setImageUrl(initialData.imageUrl);
-            setAvailability(initialData.availability);
+            setAvailability(initialData.availability || []);
         }
     }, [initialData, mode]);
 
     const handleOpenChange = (open: boolean) => {
         setIsOpen(open);
         if (!open) {
-            // Reset form when closing if it's in create mode
              if (mode === 'create') {
                 setName('');
                 setPrice('');
                 setStock('');
                 setImageUrl('');
-                setAvailability('pos');
+                setAvailability([]);
             }
         } else {
              if (mode === 'edit' && initialData) {
@@ -117,15 +110,23 @@ function ProductForm({
                 setPrice(initialData.price.toString());
                 setStock(initialData.stock.toString());
                 setImageUrl(initialData.imageUrl);
-                setAvailability(initialData.availability);
+                setAvailability(initialData.availability || []);
             } else {
                 setName('');
                 setPrice('');
                 setStock('');
                 setImageUrl('');
-                setAvailability('pos');
+                setAvailability([]);
             }
         }
+    };
+
+    const handleAvailabilityChange = (value: ProductAvailability) => {
+        setAvailability(prev => 
+            prev.includes(value)
+                ? prev.filter(item => item !== value)
+                : [...prev, value]
+        );
     };
 
 
@@ -218,17 +219,19 @@ function ProductForm({
                             <Input id="product-image-url" placeholder="https://ejemplo.com/imagen.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="product-availability">Disponibilidad</Label>
-                            <Select value={availability} onValueChange={(value) => setAvailability(value as ProductAvailability)}>
-                                <SelectTrigger id="product-availability">
-                                    <SelectValue placeholder="Seleccione disponibilidad..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availabilityOptions.map(opt => (
-                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label>Disponibilidad</Label>
+                            <div className="space-y-2 rounded-md border p-4">
+                                {Object.entries(availabilityMap).map(([key, { label }]) => (
+                                    <div key={key} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`availability-${key}`}
+                                            checked={availability.includes(key as ProductAvailability)}
+                                            onCheckedChange={() => handleAvailabilityChange(key as ProductAvailability)}
+                                        />
+                                        <Label htmlFor={`availability-${key}`} className="font-normal">{label}</Label>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -342,10 +345,6 @@ function SortableProductCard({ product, onProductUpdated, onProductAdded }: { pr
         transition,
     };
 
-    const availabilityConfig = availabilityOptions.find(opt => opt.value === product.availability);
-    const AvailabilityIcon = availabilityConfig?.icon || Store;
-
-
     return (
         <div ref={setNodeRef} style={style} className="touch-none">
             <Card
@@ -396,12 +395,19 @@ function SortableProductCard({ product, onProductUpdated, onProductAdded }: { pr
                 <CardContent className="p-4">
                     <div className="flex justify-between items-start gap-2">
                         <h3 className="text-lg font-semibold">{product.name}</h3>
-                        {availabilityConfig && (
-                             <Badge variant="secondary" className="flex items-center gap-1">
-                                <AvailabilityIcon className="h-3 w-3" />
-                                <span>{availabilityConfig.label}</span>
-                            </Badge>
-                        )}
+                         <div className="flex flex-col items-end gap-1">
+                            {product.availability.map(avail => {
+                                const currentAvailability = availabilityMap[avail];
+                                if (!currentAvailability) return null;
+                                const AvailabilityIcon = currentAvailability.icon;
+                                return (
+                                    <Badge key={avail} variant="secondary" className="flex items-center gap-1">
+                                        <AvailabilityIcon className="h-3 w-3" />
+                                        <span>{currentAvailability.label}</span>
+                                    </Badge>
+                                );
+                            })}
+                        </div>
                     </div>
                     <div className="flex justify-between items-center mt-2">
                         <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
@@ -458,7 +464,7 @@ export default function ProductsPage() {
   }, []);
 
   const handleProductAdded = (newProduct: Product) => {
-    setProducts(prevProducts => [...prevProducts, newProduct]);
+    setProducts(prevProducts => [...prevProducts, newProduct].sort((a,b) => a.position - b.position));
   };
 
   const handleProductUpdated = (updatedProduct: Product) => {
@@ -539,3 +545,5 @@ export default function ProductsPage() {
     </div>
   );
 }
+
+    
