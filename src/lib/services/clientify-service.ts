@@ -33,6 +33,11 @@ async function getAuthToken(): Promise<string | null> {
             return null;
         }
 
+        if (!data.token) {
+            console.error("Authentication successful, but no token was returned from Clientify.");
+            return null;
+        }
+
         return data.token;
 
     } catch (error) {
@@ -59,17 +64,13 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
 
   // Ensure the number has the Colombian country code prefix
   let formattedTo = to.trim();
-  if (!formattedTo.startsWith('+57')) {
-      if (formattedTo.length === 10) {
-        formattedTo = `+57${formattedTo}`;
-      } else {
-         console.warn(`Phone number ${to} might not be in the correct format.`);
-      }
+  if (!formattedTo.startsWith('57') && formattedTo.length === 10) {
+      formattedTo = `57${formattedTo}`;
+  } else if (formattedTo.startsWith('+57')) {
+      formattedTo = formattedTo.substring(1);
   }
   
-  // The API endpoint for sending messages might be different, this is a common pattern.
-  // Please adjust the URL if Clientify's documentation specifies a different one.
-  const API_URL = 'https://api.clientify.net/v1/whatsapp/messages/send';
+  const API_URL = 'https://api.clientify.net/v1/whatsapp/messages/send/';
 
   try {
     const response = await fetch(API_URL, {

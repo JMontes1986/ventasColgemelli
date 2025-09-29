@@ -1,6 +1,7 @@
 
 'use server';
 
+import 'dotenv/config'; // Load environment variables
 import type { Purchase } from '@/lib/types';
 import { sendWhatsAppMessage } from '@/lib/services/clientify-service';
 import { formatCurrency } from '@/lib/utils';
