@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, Search, ExternalLink, Printer } from "lucide-react";
+import { Trash2, Plus, Minus, Search, ExternalLink, Printer, Download } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
 import { addPreSalePurchase, getPurchasesByCedula, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
@@ -76,6 +76,7 @@ export default function PreSalePage() {
   const confirmationDialogRef = useRef<HTMLDivElement>(null);
 
   // For history/search
+  const [allPreSales, setAllPreSales] = useState<Purchase[]>([]);
   const [recentPreSales, setRecentPreSales] = useState<Purchase[]>([]);
   const [searchCedula, setSearchCedula] = useState('');
   const [searchResults, setSearchResults] = useState<Purchase[]>([]);
@@ -90,9 +91,10 @@ export default function PreSalePage() {
         ]);
         setProducts(fetchedProducts);
         const presales = allPurchases
-          .filter(p => p.status === 'pre-sale' || p.status === 'pre-sale-confirmed')
-          .slice(0, 5);
-        setRecentPreSales(presales);
+          .filter(p => p.status === 'pre-sale' || p.status === 'pre-sale-confirmed');
+        
+        setAllPreSales(presales);
+        setRecentPreSales(presales.slice(0, 5));
     } catch (error) {
         console.error("Error fetching data:", error);
     } finally {
@@ -198,6 +200,41 @@ export default function PreSalePage() {
         setIsHistoryLoading(false);
     }
   }
+
+  const handleExportCSV = () => {
+    if (allPreSales.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "No hay datos",
+            description: "No hay datos de preventas para exportar."
+        });
+        return;
+    }
+
+    const headers = ["Fecha", "Cedula/Codigo", "Celular", "Productos", "Total (COP)", "Estado", "ID de Preventa"];
+    const rows = allPreSales.map((ps) => [
+        `"${ps.date}"`,
+        `"${ps.cedula}"`,
+        `"${ps.celular}"`,
+        `"${ps.items.map(item => `${item.name} (x${item.quantity})`).join('; ')}"`,
+        ps.total,
+        `"${statusTranslations[ps.status]}"`,
+        `"${ps.id}"`
+    ]);
+
+    let csvContent = "data:text/csv;charset=utf-8," 
+        + headers.join(",") + "\n" 
+        + rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "historial_de_preventas.csv");
+    document.body.appendChild(link);
+
+    link.click();
+    document.body.removeChild(link);
+};
 
   const handlePrint = () => {
     window.print();
@@ -319,7 +356,7 @@ export default function PreSalePage() {
                                     required
                                 />
                             </div>
-                            <div className="space-y-2">
+                             <div className="space-y-2">
                                 <Label htmlFor="customer-celular" className="text-white">Celular (para WhatsApp)</Label>
                                 <div className="relative">
                                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white">
@@ -418,6 +455,61 @@ export default function PreSalePage() {
         </div>
       </div>
       
+      <div className="mt-8">
+        <Card>
+            <CardHeader className="flex items-center justify-between flex-row">
+                <div>
+                    <CardTitle>Historial de Todas las Preventas</CardTitle>
+                    <CardDescription>
+                    Un registro completo de todas las preventas registradas en el sistema.
+                    </CardDescription>
+                </div>
+                <Button variant="outline" onClick={handleExportCSV} disabled={isLoading}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar a CSV
+                </Button>
+            </CardHeader>
+            <CardContent>
+                 <ScrollArea className="h-[60vh]">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Cédula/Código</TableHead>
+                                    <TableHead>Celular</TableHead>
+                                    <TableHead>Productos</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow><TableCell colSpan={5} className="h-24 text-center">Cargando historial...</TableCell></TableRow>
+                                ) : allPreSales.length === 0 ? (
+                                    <TableRow><TableCell colSpan={5} className="h-24 text-center">No hay preventas registradas.</TableCell></TableRow>
+                                ) : (
+                                    allPreSales.map(ps => (
+                                        <TableRow key={ps.id}>
+                                            <TableCell>{ps.date}</TableCell>
+                                            <TableCell>{ps.cedula}</TableCell>
+                                            <TableCell>{ps.celular}</TableCell>
+                                            <TableCell>
+                                                <ul className="list-disc list-inside text-xs">
+                                                    {ps.items.map(item => (
+                                                        <li key={item.id}>{item.name} (x{item.quantity})</li>
+                                                    ))}
+                                                </ul>
+                                            </TableCell>
+                                            <TableCell className="text-right font-medium">{formatCurrency(ps.total)}</TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+            </CardContent>
+        </Card>
+      </div>
+
       <Dialog open={isConfirmationOpen} onOpenChange={setIsConfirmationOpen}>
         <DialogContent className="printable-area">
             <div ref={confirmationDialogRef}>
