@@ -60,6 +60,15 @@ const statusTranslations: Record<Purchase['status'], string> = {
     'pre-sale-confirmed': 'Preventa Confirmada',
 };
 
+const statusColors: Record<Purchase['status'], string> = {
+    pending: 'bg-yellow-500/20 text-yellow-700',
+    paid: 'bg-blue-500/20 text-blue-700',
+    delivered: 'bg-green-500/20 text-green-700',
+    cancelled: 'bg-red-500/20 text-red-700',
+    'pre-sale': 'bg-purple-500/20 text-purple-700',
+    'pre-sale-confirmed': 'bg-teal-500/20 text-teal-700',
+};
+
 export default function PreSalePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -90,8 +99,8 @@ export default function PreSalePage() {
           getPurchases()
         ]);
         setProducts(fetchedProducts);
-        const presales = allPurchases
-          .filter(p => p.status === 'pre-sale' || p.status === 'pre-sale-confirmed');
+        // Filter for any purchase that started as a pre-sale (ID starts with PV)
+        const presales = allPurchases.filter(p => p.id.startsWith('PV'));
         
         setAllPreSales(presales);
         setRecentPreSales(presales.slice(0, 5));
@@ -192,7 +201,8 @@ export default function PreSalePage() {
     setIsHistoryLoading(true);
     try {
         const history = await getPurchasesByCedula(searchCedula);
-        setSearchResults(history.filter(p => p.status.startsWith('pre-sale')));
+        // Filter only for presales from the search result
+        setSearchResults(history.filter(p => p.id.startsWith('PV')));
     } catch (error) {
         console.error("Error fetching purchase history:", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudo cargar el historial de preventas." });
@@ -211,15 +221,15 @@ export default function PreSalePage() {
         return;
     }
 
-    const headers = ["Fecha", "Cedula/Codigo", "Celular", "Productos", "Total (COP)", "Estado", "ID de Preventa"];
+    const headers = ["ID de Preventa", "Fecha", "Cedula/Codigo", "Celular", "Productos", "Total (COP)", "Estado"];
     const rows = allPreSales.map((ps) => [
+        `"${ps.id}"`,
         `"${ps.date}"`,
         `"${ps.cedula}"`,
-        `"${ps.celular}"`,
+        `"${ps.celular || ''}"`,
         `"${ps.items.map(item => `${item.name} (x${item.quantity})`).join('; ')}"`,
         ps.total,
-        `"${statusTranslations[ps.status]}"`,
-        `"${ps.id}"`
+        `"${statusTranslations[ps.status] || ps.status}"`
     ]);
 
     let csvContent = "data:text/csv;charset=utf-8," 
@@ -434,7 +444,7 @@ export default function PreSalePage() {
                                         <TableRow key={ps.id}>
                                             <TableCell className="font-mono">{ps.id}</TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className={cn(ps.status === 'pre-sale' ? 'text-purple-700 border-purple-300' : 'text-teal-700 border-teal-300')}>{statusTranslations[ps.status]}</Badge>
+                                                <Badge variant="outline" className={cn("capitalize", statusColors[ps.status])}>{statusTranslations[ps.status]}</Badge>
                                             </TableCell>
                                             <TableCell>{formatCurrency(ps.total)}</TableCell>
                                             <TableCell className="text-right">
@@ -478,14 +488,15 @@ export default function PreSalePage() {
                                     <TableHead>Cédula/Código</TableHead>
                                     <TableHead>Celular</TableHead>
                                     <TableHead>Productos</TableHead>
+                                    <TableHead>Estado</TableHead>
                                     <TableHead className="text-right">Total</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
-                                    <TableRow><TableCell colSpan={5} className="h-24 text-center">Cargando historial...</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={6} className="h-24 text-center">Cargando historial...</TableCell></TableRow>
                                 ) : allPreSales.length === 0 ? (
-                                    <TableRow><TableCell colSpan={5} className="h-24 text-center">No hay preventas registradas.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={6} className="h-24 text-center">No hay preventas registradas.</TableCell></TableRow>
                                 ) : (
                                     allPreSales.map(ps => (
                                         <TableRow key={ps.id}>
@@ -498,6 +509,9 @@ export default function PreSalePage() {
                                                         <li key={item.id}>{item.name} (x{item.quantity})</li>
                                                     ))}
                                                 </ul>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className={cn("capitalize", statusColors[ps.status])}>{statusTranslations[ps.status]}</Badge>
                                             </TableCell>
                                             <TableCell className="text-right font-medium">{formatCurrency(ps.total)}</TableCell>
                                         </TableRow>
@@ -555,3 +569,5 @@ export default function PreSalePage() {
     </div>
   );
 }
+
+    
