@@ -275,18 +275,6 @@ export async function updatePendingPurchase(purchaseId: string, newCart: Omit<Ca
 }
 
 export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUser: User): Promise<void> {
-    // Get active cashbox session REF before transaction
-    let activeCashboxSessionRef: DocumentReference | null = null;
-    if (currentUser.id) {
-        const sessionsCol = collection(db, 'cashboxSessions');
-        const q = query(sessionsCol, where("userId", "==", currentUser.id), where("status", "==", "open"), limit(1));
-        const sessionSnapshot = await getDocs(q);
-        if (sessionSnapshot.empty) {
-        throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
-        }
-        activeCashboxSessionRef = sessionSnapshot.docs[0].ref;
-    }
-
     await runTransaction(db, async (transaction) => {
         // --- 1. READ PHASE ---
         const purchaseRef = doc(db, "purchases", purchaseId);
@@ -308,11 +296,6 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
             transaction.update(productRef, { stock: increment(item.quantity) });
         }
         
-        // Update active cashbox session
-        if (activeCashboxSessionRef) {
-            transaction.update(activeCashboxSessionRef, { totalSales: increment(purchaseData.total) });
-        }
-
         // Update purchase status
         transaction.update(purchaseRef, { status: "pre-sale-confirmed" });
     });
