@@ -62,18 +62,6 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
     ? purchase.items[0].name.charAt(0).toUpperCase()
     : 'X';
 
-  // Get active cashbox session REF before transaction
-  let activeCashboxSessionRef: DocumentReference | null = null;
-  if (purchase.sellerId) {
-    const sessionsCol = collection(db, 'cashboxSessions');
-    const q = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
-    const sessionSnapshot = await getDocs(q);
-    if (sessionSnapshot.empty) {
-      throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
-    }
-    activeCashboxSessionRef = sessionSnapshot.docs[0].ref;
-  }
-
   try {
     const newPurchaseId = await runTransaction(db, async (transaction) => {
       // --- 1. READ PHASE ---
@@ -106,8 +94,15 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
 
       transaction.set(counterRef, { count: newCount }, { merge: true });
 
-      if (activeCashboxSessionRef) {
-          transaction.update(activeCashboxSessionRef, { totalSales: increment(purchase.total) });
+      // Update totalSales in cashbox session if applicable and user is a seller
+      if (purchase.sellerId && purchase.status === 'paid') {
+          const sessionsCol = collection(db, 'cashboxSessions');
+          const q = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
+          const sessionSnapshot = await getDocs(q);
+          if (!sessionSnapshot.empty) {
+              const sessionRef = sessionSnapshot.docs[0].ref;
+              transaction.update(sessionRef, { totalSales: increment(purchase.total) });
+          }
       }
 
       const purchaseRef = doc(db, 'purchases', generatedId);
@@ -173,6 +168,24 @@ export async function addPreSalePurchase(purchase: NewPurchase): Promise<Purchas
 // Function to update an existing purchase (e.g., to mark items as returned)
 export async function updatePurchase(purchaseId: string, data: Partial<Purchase>): Promise<void> {
     const purchaseRef = doc(db, 'purchases', purchaseId);
+
+    // If purchase is being marked as 'paid', update the cashbox
+    if (data.status === 'paid') {
+        const purchaseDoc = await getDoc(purchaseRef);
+        if (purchaseDoc.exists()) {
+            const purchase = purchaseDoc.data() as Purchase;
+            if (purchase.sellerId) {
+                const sessionsCol = collection(db, 'cashboxSessions');
+                const q = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
+                const sessionSnapshot = await getDocs(q);
+                if (!sessionSnapshot.empty) {
+                    const sessionRef = sessionSnapshot.docs[0].ref;
+                    await updateDoc(sessionRef, { totalSales: increment(purchase.total) });
+                }
+            }
+        }
+    }
+
     await updateDoc(purchaseRef, data);
 }
 

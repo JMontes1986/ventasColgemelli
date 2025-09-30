@@ -18,7 +18,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useMockAuth } from '@/hooks/use-mock-auth';
 import { addAuditLog } from '@/lib/services/audit-service';
-import { getActiveSessionForUser } from '@/lib/services/cashbox-service';
 
 const statusTranslations: Record<Purchase['status'], string> = {
     pending: 'Pendiente',
@@ -113,14 +112,6 @@ function RedeemPageComponent() {
             const purchaseToLog = searchResults.find(p => p.id === purchaseId);
             if (!purchaseToLog) {
                 throw new Error("No se encontró la compra para registrar en auditoría.");
-            }
-
-            // For direct payments or confirming a pre-sale as paid, ensure a cashbox session is active.
-            if (newStatus === 'paid') {
-                 const activeSession = await getActiveSessionForUser(currentUser.id);
-                 if (!activeSession) {
-                    throw new Error("No hay una sesión de caja activa para este vendedor. Por favor, abra la caja primero.");
-                 }
             }
 
             if (newStatus === 'pre-sale-confirmed') {
