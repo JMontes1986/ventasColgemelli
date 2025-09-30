@@ -110,12 +110,12 @@ function RedeemPageComponent() {
         }
 
         try {
-            let purchaseToLog = searchResults.find(p => p.id === purchaseId);
+            const purchaseToLog = searchResults.find(p => p.id === purchaseId);
             if (!purchaseToLog) {
                 throw new Error("No se encontró la compra para registrar en auditoría.");
             }
-            
-            // For direct payments, ensure a cashbox session is active.
+
+            // For direct payments or confirming a pre-sale as paid, ensure a cashbox session is active.
             if (newStatus === 'paid') {
                  const activeSession = await getActiveSessionForUser(currentUser.id);
                  if (!activeSession) {
