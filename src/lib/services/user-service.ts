@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, limit } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, setDoc, updateDoc, query, where, limit, getDoc } from "firebase/firestore";
 import type { User, NewUser, ModulePermission } from "@/lib/types";
 import { mockUsers } from "@/lib/placeholder-data";
 import { addAuditLog } from "./audit-service";
@@ -38,6 +38,20 @@ export async function getUsers(): Promise<User[]> {
   const userList = userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
   return userList;
 }
+
+// Function to get a single user by their ID
+export async function getUserById(id: string): Promise<User | null> {
+    if (!id) return null;
+    const userRef = doc(db, 'users', id);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+        return { id: userSnap.id, ...userSnap.data() } as User;
+    } else {
+        return null;
+    }
+}
+
 
 // Function to add a new user to Firestore
 export async function addUser(user: NewUser): Promise<Omit<User, 'permissions'>> {

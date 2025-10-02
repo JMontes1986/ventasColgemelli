@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { ModulePermission, User } from "@/lib/types";
-import { getUsers } from "@/lib/services/user-service";
+import { getUserById } from "@/lib/services/user-service";
 
 const AUTH_USER_KEY = "auth_user_id";
 
@@ -16,10 +16,8 @@ export function useAuth() {
     try {
       const storedUserId = localStorage.getItem(AUTH_USER_KEY);
       if (storedUserId) {
-        // Fetch fresh user data on every load to prevent stale data issues.
-        // This is crucial for environments like Netlify.
-        const allUsers = await getUsers();
-        const user = allUsers.find(u => u.id === storedUserId);
+        // Fetch only the specific user's data
+        const user = await getUserById(storedUserId);
         
         if (user) {
           console.log("Auth hook: Found user in DB:", user.name);
@@ -31,7 +29,7 @@ export function useAuth() {
         }
       }
     } catch (error) {
-      console.warn("Could not read auth state from localStorage or fetch users.", error);
+      console.warn("Could not read auth state from localStorage or fetch user.", error);
     } finally {
       setIsMounted(true);
     }
