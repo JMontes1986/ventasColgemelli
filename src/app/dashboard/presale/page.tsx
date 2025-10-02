@@ -23,10 +23,10 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, Search, ExternalLink, Printer, Download } from "lucide-react";
+import { Trash2, Plus, Minus, Search, ExternalLink, Printer, Download, Pencil } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
-import { addPreSalePurchase, getRecentPreSales, type NewPurchase, getPreSalesByCedula, getPurchases } from '@/lib/services/purchase-service';
+import { addPreSalePurchase, getRecentPreSales, type NewPurchase, getPreSalesByCedula, getPurchases, updatePendingPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +48,7 @@ type CartItem = {
   name: string;
   price: number;
   quantity: number;
-  stock?: number;
+  stock: number;
 };
 
 const statusTranslations: Record<Purchase['status'], string> = {
@@ -78,6 +78,7 @@ export default function PreSalePage() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
 
   // For confirmation dialog
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
@@ -94,7 +95,6 @@ export default function PreSalePage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-        // Optimized: Fetch only necessary data on initial load
         const [fetchedProducts, recent, all] = await Promise.all([
           getProducts(),
           getRecentPreSales(),
@@ -117,7 +117,6 @@ export default function PreSalePage() {
   const addToCart = (item: Product) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
-      
       if (existingItem) {
         return prevCart.map((cartItem) =>
           cartItem.id === item.id
@@ -148,6 +147,7 @@ export default function PreSalePage() {
     setCart([]);
     setCustomerIdentifier('');
     setCustomerCelular('');
+    setEditingPurchase(null);
   };
 
   const handlePreSale = async () => {
@@ -155,6 +155,12 @@ export default function PreSalePage() {
         toast({ variant: "destructive", title: "Error", description: "El carrito está vacío." });
         return;
     }
+    
+    if (editingPurchase) {
+        handleUpdatePurchase();
+        return;
+    }
+
     if (!customerIdentifier) {
         toast({ variant: "destructive", title: "Error", description: "Debe ingresar la cédula o código del estudiante." });
         return;
@@ -190,6 +196,43 @@ export default function PreSalePage() {
     } finally {
         setIsProcessing(false);
     }
+  }
+
+  const handleUpdatePurchase = async () => {
+    if (!editingPurchase || cart.length === 0) return;
+    setIsProcessing(true);
+    
+    try {
+        await updatePendingPurchase(editingPurchase.id, cart.map(({ stock, ...item }) => item));
+        
+        setLastPurchase({ ...editingPurchase, items: cart, total: subtotal });
+        setIsConfirmationOpen(true);
+        toast({ title: "Éxito", description: "Su preventa ha sido actualizada correctamente." });
+
+        clearCart();
+        loadData();
+
+    } catch (error) {
+        console.error("Error updating purchase:", error);
+        toast({ variant: "destructive", title: "Error al Actualizar", description: (error as Error).message || "No se pudo actualizar la preventa." });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
+  const handleEditPurchase = (purchase: Purchase) => {
+    const cartItems: CartItem[] = purchase.items.map(item => {
+        const product = products.find(p => p.id === item.id);
+        return {
+            ...item,
+            stock: product ? product.stock + item.quantity : item.quantity,
+        }
+    });
+    setCart(cartItems);
+    setEditingPurchase(purchase);
+    setCustomerIdentifier(purchase.cedula);
+    setCustomerCelular(purchase.celular);
+    toast({ title: "Modo Edición", description: "La preventa ha sido cargada en el carrito." });
   }
 
   const handleSearchHistory = async () => {
@@ -307,7 +350,8 @@ export default function PreSalePage() {
             <div className="lg:sticky top-20 z-10">
                 <Card className="bg-blue-950 text-white">
                     <CardHeader>
-                    <CardTitle>Carrito de Preventa</CardTitle>
+                        <CardTitle>{editingPurchase ? 'Modificando Preventa' : 'Carrito de Preventa'}</CardTitle>
+                        {editingPurchase && <CardDescription className="text-blue-300">Código: {editingPurchase.id}</CardDescription>}
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-64 mb-4">
@@ -362,6 +406,7 @@ export default function PreSalePage() {
                                     className="bg-blue-900 border-blue-700 text-white"
                                     placeholder="Ingrese identificación..."
                                     required
+                                    disabled={!!editingPurchase}
                                 />
                             </div>
                              <div className="space-y-2">
@@ -379,6 +424,7 @@ export default function PreSalePage() {
                                         placeholder="3001234567"
                                         required
                                         maxLength={10}
+                                        disabled={!!editingPurchase}
                                     />
                                 </div>
                             </div>
@@ -394,10 +440,10 @@ export default function PreSalePage() {
                             onClick={handlePreSale}
                             disabled={isProcessing}
                         >
-                            {isProcessing ? 'Procesando...' : 'Registrar Preventa'}
+                            {isProcessing ? 'Procesando...' : (editingPurchase ? 'Guardar Cambios' : 'Registrar Preventa')}
                         </Button>
                         <Button variant="destructive" className="w-full text-lg h-12" onClick={clearCart}>
-                            Vaciar Carrito
+                            {editingPurchase ? 'Cancelar Edición' : 'Vaciar Carrito'}
                         </Button>
                     </CardFooter>
                 </Card>
@@ -445,7 +491,13 @@ export default function PreSalePage() {
                                                 <Badge variant="outline" className={cn("capitalize", statusColors[ps.status])}>{statusTranslations[ps.status]}</Badge>
                                             </TableCell>
                                             <TableCell>{formatCurrency(ps.total)}</TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right space-x-1">
+                                                {ps.status === 'pre-sale' && (
+                                                    <Button size="sm" variant="secondary" onClick={() => handleEditPurchase(ps)}>
+                                                        <Pencil className="mr-2 h-3 w-3" />
+                                                        Modificar
+                                                    </Button>
+                                                )}
                                                 <Button asChild size="sm" variant="outline">
                                                     <Link href={`/dashboard/redeem?code=${ps.id}`}>
                                                         Ver / Gestionar <ExternalLink className="ml-2 h-3 w-3" />
@@ -529,7 +581,7 @@ export default function PreSalePage() {
                     <div className="flex justify-center mb-4">
                         <Logo className="h-auto w-48" />
                     </div>
-                    <DialogTitle className="text-center text-2xl">¡Preventa Registrada!</DialogTitle>
+                    <DialogTitle className="text-center text-2xl">{editingPurchase ? '¡Preventa Actualizada!' : '¡Preventa Registrada!'}</DialogTitle>
                     <DialogDescription className="text-center">Entregue este comprobante al padre de familia para confirmar y pagar la preventa en caja.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
@@ -568,4 +620,5 @@ export default function PreSalePage() {
   );
 }
 
+    
     

@@ -37,7 +37,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { getProductsByAvailability } from '@/lib/services/product-service';
-import { addPreSalePurchase, getPurchasesByCedula, type NewPurchase, updatePendingPurchase } from '@/lib/services/purchase-service';
+import { addPreSalePurchase, getPurchasesByCedula, type NewPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
@@ -65,7 +65,6 @@ export default function SelfServicePage() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
 
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
@@ -87,13 +86,11 @@ export default function SelfServicePage() {
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       
-      const effectiveStock = item.stock + (editingPurchase?.items.find(i => i.id === item.id)?.quantity || 0);
-
-      if (effectiveStock <= 0) {
+      if (item.stock <= 0) {
           toast({ variant: "destructive", title: "Sin Stock", description: `${item.name} está agotado.` });
           return prevCart;
       }
-       if (existingItem && existingItem.quantity >= effectiveStock) {
+       if (existingItem && existingItem.quantity >= item.stock) {
           toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${item.name}.` });
           return prevCart;
       }
@@ -116,15 +113,9 @@ export default function SelfServicePage() {
       }
 
       const itemToUpdate = prevCart.find(item => item.id === id);
-      if (!itemToUpdate) return prevCart;
-
-      const product = products.find(p => p.id === id);
-      const originalQuantityInCart = editingPurchase?.items.find(i => i.id === id)?.quantity || 0;
-      const availableStock = (product?.stock || 0) + originalQuantityInCart;
-
-      if (newQuantity > availableStock) {
-        toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${availableStock} unidades de ${itemToUpdate.name}.` });
-        return prevCart.map(item => item.id === id ? { ...item, quantity: availableStock } : item);
+      if (itemToUpdate && itemToUpdate.stock < newQuantity) {
+        toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${itemToUpdate.stock} unidades de ${itemToUpdate.name}.` });
+        return prevCart.map(item => item.id === id ? { ...item, quantity: itemToUpdate.stock } : item);
       }
 
       return prevCart.map((item) =>
@@ -139,37 +130,13 @@ export default function SelfServicePage() {
   
   const clearCart = () => {
     setCart([]);
-    setEditingPurchase(null);
   };
 
   const handleInitiatePayment = () => {
     if (cart.length > 0) {
-        if (editingPurchase) {
-            handleUpdatePurchase();
-        } else {
-            setIsUserInfoModalOpen(true);
-        }
+        setIsUserInfoModalOpen(true);
     }
   }
-
-  const handleUpdatePurchase = async () => {
-    if (!editingPurchase || cart.length === 0) return;
-    setIsProcessing(true);
-    
-    try {
-        await updatePendingPurchase(editingPurchase.id, cart);
-        
-        setPaymentCode(editingPurchase.id);
-        setIsPaymentModalOpen(true);
-        toast({ title: "Éxito", description: "Su compra ha sido actualizada correctamente." });
-
-    } catch (error) {
-        console.error("Error updating purchase:", error);
-        toast({ variant: "destructive", title: "Error al Actualizar", description: (error as Error).message || "No se pudo actualizar la compra." });
-    } finally {
-        setIsProcessing(false);
-    }
-  };
 
 
   const handleConfirmPayment = async (e: React.FormEvent) => {
@@ -180,7 +147,7 @@ export default function SelfServicePage() {
     const newPurchaseData: NewPurchase = {
         date: new Date().toLocaleString('es-CO'),
         total: subtotal,
-        items: cart,
+        items: cart.map(({ stock, ...item }) => item),
         cedula,
         celular,
         status: 'pre-sale',
@@ -229,20 +196,6 @@ export default function SelfServicePage() {
       setSearchCedula('');
   }
 
-  const handleEditPurchase = (purchase: Purchase) => {
-    const cartItems: CartItem[] = purchase.items.map(item => {
-        const product = products.find(p => p.id === item.id);
-        return {
-            ...item,
-            type: 'product',
-            stock: product ? product.stock + item.quantity : item.quantity, // Temporarily add back stock for validation
-        }
-    });
-    setCart(cartItems);
-    setEditingPurchase(purchase);
-    toast({ title: "Modo Edición", description: "Los artículos de su compra han sido cargados en el carrito." });
-  }
-
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
@@ -259,13 +212,10 @@ export default function SelfServicePage() {
           ) : products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((product) => {
-                const isSoldOut = product.stock <= 0 && !(editingPurchase?.items.find(i => i.id === product.id));
+                const isSoldOut = product.stock <= 0;
                 const cartItem = cart.find(item => item.id === product.id);
                 const quantityInCart = cartItem ? cartItem.quantity : 0;
-                
-                const originalQuantityInCart = editingPurchase?.items.find(i => i.id === product.id)?.quantity || 0;
-                const availableStock = product.stock + originalQuantityInCart;
-                const hasReachedLimit = quantityInCart >= availableStock;
+                const hasReachedLimit = quantityInCart >= product.stock;
 
                 return (
                   <Card key={product.id} className={cn("overflow-hidden group", isSoldOut && "opacity-50")}>
@@ -317,8 +267,7 @@ export default function SelfServicePage() {
         <div>
           <Card className="bg-primary text-primary-foreground lg:sticky top-20">
             <CardHeader>
-              <CardTitle>{editingPurchase ? 'Modificando Compra' : 'Carrito de Compras'}</CardTitle>
-               {editingPurchase && <CardDescription className="text-primary-foreground/80">Código: {editingPurchase.id}</CardDescription>}
+              <CardTitle>Carrito de Compras</CardTitle>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-60 mb-4">
@@ -366,10 +315,10 @@ export default function SelfServicePage() {
                 onClick={handleInitiatePayment}
                 disabled={cart.length === 0 || isProcessing}
               >
-                {isProcessing ? 'Procesando...' : (editingPurchase ? 'Guardar Cambios' : 'Generar Código de Pago')}
+                {isProcessing ? 'Procesando...' : 'Generar Código de Pago'}
               </Button>
               <Button variant="destructive" className="w-full text-lg h-12" onClick={clearCart}>
-                {editingPurchase ? 'Cancelar Edición' : 'Vaciar'}
+                Vaciar
               </Button>
             </CardFooter>
           </Card>
@@ -384,7 +333,7 @@ export default function SelfServicePage() {
               Mi Historial de Compras
             </CardTitle>
             <CardDescription>
-              Ingrese su número de cédula para ver su historial y modificar compras pendientes.
+              Ingrese su número de cédula para ver su historial.
             </CardDescription>
             <div className="pt-2 flex items-end gap-2">
               <div className="flex-grow">
@@ -410,7 +359,6 @@ export default function SelfServicePage() {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -424,14 +372,6 @@ export default function SelfServicePage() {
                          </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(purchase.total)}</TableCell>
-                       <TableCell className="text-right">
-                        {(purchase.status === 'pending' || purchase.status === 'pre-sale') && (
-                            <Button variant="outline" size="sm" onClick={() => handleEditPurchase(purchase)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Modificar
-                            </Button>
-                        )}
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -492,7 +432,7 @@ export default function SelfServicePage() {
       <Dialog open={isPaymentModalOpen} onOpenChange={closeModal}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingPurchase ? 'Compra Actualizada' : 'Código de Pago Generado'}</DialogTitle>
+            <DialogTitle>Código de Pago Generado</DialogTitle>
             <DialogDesc>
               Este es el comprobante de su compra.
             </DialogDesc>
@@ -535,3 +475,5 @@ export default function SelfServicePage() {
     </div>
   );
 }
+
+    
