@@ -7,12 +7,35 @@ import { addAuditLog } from "./audit-service";
 
 
 // Function to get all purchases, ordered by date
-export async function getPurchases(): Promise<Purchase[]> {
+export async function getPurchases(idPrefix?: string): Promise<Purchase[]> {
   const purchasesCol = collection(db, 'purchases');
-  const q = query(purchasesCol, orderBy("date", "desc"));
+  let q;
+  if (idPrefix) {
+      // This is a "startsWith" query workaround for Firestore
+      q = query(purchasesCol, 
+          where(doc.name, '>=', idPrefix),
+          where(doc.name, '<', idPrefix + 'z'),
+          orderBy("date", "desc")
+      );
+  } else {
+      q = query(purchasesCol, orderBy("date", "desc"));
+  }
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
   return purchaseList;
+}
+
+// Function to get the 5 most recent pre-sales
+export async function getRecentPreSales(): Promise<Purchase[]> {
+    const purchasesCol = collection(db, 'purchases');
+    const q = query(purchasesCol,
+        where('id', '>=', 'PV'),
+        where('id', '<', 'PV' + 'z'),
+        orderBy('id', 'desc'),
+        limit(5)
+    );
+    const purchaseSnapshot = await getDocs(q);
+    return purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
 }
 
 // Function to get a single purchase by its ID
@@ -94,17 +117,6 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
 
       transaction.set(counterRef, { count: newCount }, { merge: true });
 
-      // Update totalSales in cashbox session if applicable and user is a seller
-      if (purchase.sellerId && purchase.status === 'paid') {
-          const sessionsCol = collection(db, 'cashboxSessions');
-          const q = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
-          const sessionSnapshot = await getDocs(q);
-          if (!sessionSnapshot.empty) {
-              const sessionRef = sessionSnapshot.docs[0].ref;
-              transaction.update(sessionRef, { totalSales: increment(purchase.total) });
-          }
-      }
-
       const purchaseRef = doc(db, 'purchases', generatedId);
       const itemsToSave = purchase.items.map(({...item}) => ({...item, returned: false }));
       transaction.set(purchaseRef, { ...purchase, items: itemsToSave });
@@ -168,24 +180,6 @@ export async function addPreSalePurchase(purchase: NewPurchase): Promise<Purchas
 // Function to update an existing purchase (e.g., to mark items as returned)
 export async function updatePurchase(purchaseId: string, data: Partial<Purchase>): Promise<void> {
     const purchaseRef = doc(db, 'purchases', purchaseId);
-
-    // If purchase is being marked as 'paid', update the cashbox
-    if (data.status === 'paid') {
-        const purchaseDoc = await getDoc(purchaseRef);
-        if (purchaseDoc.exists()) {
-            const purchase = purchaseDoc.data() as Purchase;
-            if (purchase.sellerId) {
-                const sessionsCol = collection(db, 'cashboxSessions');
-                const q = query(sessionsCol, where("userId", "==", purchase.sellerId), where("status", "==", "open"), limit(1));
-                const sessionSnapshot = await getDocs(q);
-                if (!sessionSnapshot.empty) {
-                    const sessionRef = sessionSnapshot.docs[0].ref;
-                    await updateDoc(sessionRef, { totalSales: increment(purchase.total) });
-                }
-            }
-        }
-    }
-
     await updateDoc(purchaseRef, data);
 }
 
@@ -322,3 +316,5 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
         details: `Preventa ${purchaseId} confirmada. Stock actualizado.`,
     });
 }
+
+    

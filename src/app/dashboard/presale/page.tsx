@@ -26,7 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Search, ExternalLink, Printer, Download } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
-import { addPreSalePurchase, getPurchasesByCedula, getPurchases, type NewPurchase } from '@/lib/services/purchase-service';
+import { addPreSalePurchase, getPurchasesByCedula, getPurchases, type NewPurchase, getRecentPreSales } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useMockAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
@@ -35,10 +35,10 @@ import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -94,16 +94,15 @@ export default function PreSalePage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-        const [fetchedProducts, allPurchases] = await Promise.all([
+        // Optimized: Fetch only necessary data on initial load
+        const [fetchedProducts, recent, all] = await Promise.all([
           getProducts(),
-          getPurchases()
+          getRecentPreSales(), // Fetches only the last 5
+          getPurchases("PV") // Fetch all for the full history table
         ]);
         setProducts(fetchedProducts);
-        // Filter for any purchase that started as a pre-sale (ID starts with PV)
-        const presales = allPurchases.filter(p => p.id.startsWith('PV'));
-        
-        setAllPreSales(presales);
-        setRecentPreSales(presales.slice(0, 5));
+        setRecentPreSales(recent);
+        setAllPreSales(all);
     } catch (error) {
         console.error("Error fetching data:", error);
     } finally {
