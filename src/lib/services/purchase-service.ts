@@ -4,6 +4,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem, User } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
+import { getActiveSessionForUser } from "./cashbox-service";
 
 
 // Function to get all purchases, ordered by date
@@ -17,24 +18,25 @@ export async function getPurchases(idPrefix?: string): Promise<Purchase[]> {
           where(doc.name, '<', idPrefix + 'z')
       );
   } else {
-      q = query(purchasesCol, orderBy("date", "desc"));
+      q = query(purchasesCol);
   }
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
-  return purchaseList;
+  return purchaseList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 // Function to get the 5 most recent pre-sales
 export async function getRecentPreSales(): Promise<Purchase[]> {
     const purchasesCol = collection(db, 'purchases');
     const q = query(purchasesCol,
-        where('id', '>=', 'PV'),
-        where('id', '<', 'PV' + 'z'),
-        orderBy('id', 'desc'),
+        where('status', 'in', ['pre-sale', 'pre-sale-confirmed', 'paid', 'delivered', 'cancelled']),
+        orderBy('date', 'desc'),
         limit(5)
     );
     const purchaseSnapshot = await getDocs(q);
-    return purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+    const results = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+    // Filter client-side as Firestore doesn't support startsWith
+    return results.filter(p => p.id.startsWith('PV'));
 }
 
 // Function to get a single purchase by its ID
@@ -56,24 +58,36 @@ export async function getPurchaseById(id: string): Promise<Purchase | null> {
 // Function to get all purchases for a given cedula from Firestore
 export async function getPurchasesByCedula(cedula: string): Promise<Purchase[]> {
   const purchasesCol = collection(db, 'purchases');
-  // Remove orderBy from the query to avoid needing a composite index
   const q = query(purchasesCol, where("cedula", "==", cedula));
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
   
-  // Sort the results in application code instead of in the query
   return purchaseList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
+
+// Function to get all pre-sales for a given cedula from Firestore
+export async function getPreSalesByCedula(cedula: string): Promise<Purchase[]> {
+  const purchasesCol = collection(db, 'purchases');
+  const q = query(purchasesCol, 
+    where("cedula", "==", cedula),
+  );
+  const purchaseSnapshot = await getDocs(q);
+  const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+  
+  // Filter for presales client-side and sort
+  return purchaseList
+    .filter(p => p.id.startsWith('PV'))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
 
 // Function to get all purchases for a given celular from Firestore
 export async function getPurchasesByCelular(celular: string): Promise<Purchase[]> {
   const purchasesCol = collection(db, 'purchases');
-   // Remove orderBy from the query to avoid needing a composite index
   const q = query(purchasesCol, where("celular", "==", celular));
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
 
-  // Sort the results in application code instead of in the query
   return purchaseList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
@@ -315,5 +329,3 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
         details: `Preventa ${purchaseId} confirmada. Stock actualizado.`,
     });
 }
-
-    

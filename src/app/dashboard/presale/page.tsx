@@ -26,7 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Search, ExternalLink, Printer, Download } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
-import { addPreSalePurchase, getPurchasesByCedula, getPurchases, type NewPurchase, getRecentPreSales } from '@/lib/services/purchase-service';
+import { addPreSalePurchase, getPurchases, getRecentPreSales, type NewPurchase, getPreSalesByCedula } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
@@ -199,9 +199,8 @@ export default function PreSalePage() {
     }
     setIsHistoryLoading(true);
     try {
-        const history = await getPurchasesByCedula(searchCedula);
-        // Filter only for presales from the search result
-        setSearchResults(history.filter(p => p.id.startsWith('PV')));
+        const history = await getPreSalesByCedula(searchCedula);
+        setSearchResults(history);
     } catch (error) {
         console.error("Error fetching purchase history:", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudo cargar el historial de preventas." });
