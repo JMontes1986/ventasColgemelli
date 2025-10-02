@@ -14,8 +14,7 @@ export async function getPurchases(idPrefix?: string): Promise<Purchase[]> {
       // This is a "startsWith" query workaround for Firestore
       q = query(purchasesCol, 
           where(doc.name, '>=', idPrefix),
-          where(doc.name, '<', idPrefix + 'z'),
-          orderBy("date", "desc")
+          where(doc.name, '<', idPrefix + 'z')
       );
   } else {
       q = query(purchasesCol, orderBy("date", "desc"));
