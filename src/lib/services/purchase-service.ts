@@ -1,10 +1,9 @@
 
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where, doc, getDoc, runTransaction, setDoc, DocumentReference, updateDoc, orderBy, limit, increment, documentId } from "firebase/firestore";
 import type { Purchase, NewPurchase, Product, PurchaseStatus, CartItem, User } from "@/lib/types";
 import { addAuditLog } from "./audit-service";
-import { getActiveSessionForUser } from "./cashbox-service";
 
 
 // Function to get all purchases, ordered by date
@@ -14,14 +13,15 @@ export async function getPurchases(idPrefix?: string): Promise<Purchase[]> {
   if (idPrefix) {
       // This is a "startsWith" query workaround for Firestore
       q = query(purchasesCol, 
-          where(doc.name, '>=', idPrefix),
-          where(doc.name, '<', idPrefix + 'z')
+          where(documentId(), '>=', idPrefix),
+          where(documentId(), '<', idPrefix + 'z')
       );
   } else {
       q = query(purchasesCol);
   }
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+  // Sort client-side
   return purchaseList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
@@ -66,6 +66,7 @@ export async function getPurchasesByCedula(cedula: string): Promise<Purchase[]> 
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
   
+  // Sort client-side
   return purchaseList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
@@ -92,6 +93,7 @@ export async function getPurchasesByCelular(celular: string): Promise<Purchase[]
   const purchaseSnapshot = await getDocs(q);
   const purchaseList = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
 
+  // Sort client-side
   return purchaseList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
