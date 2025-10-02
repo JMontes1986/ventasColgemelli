@@ -461,7 +461,7 @@ export default function ProductsPage() {
       }
     }
     loadProducts();
-  }, [toast]);
+  }, []);
 
   const handleProductAdded = (newProduct: Product) => {
     setProducts(prevProducts => [...prevProducts, newProduct].sort((a,b) => a.position - b.position));
