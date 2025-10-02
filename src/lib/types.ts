@@ -96,7 +96,7 @@ export type Product = {
     stock: number;
     imageUrl: string;
     imageHint: string;
-    availability: ProductAvailability;
+    availability: ProductAvailability[];
     restockCount?: number;
     preSaleSold?: number;
     position: number;

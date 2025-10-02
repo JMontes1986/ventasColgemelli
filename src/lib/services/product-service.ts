@@ -41,6 +41,7 @@ export async function getProductsByAvailability(availability: ProductAvailabilit
     const productList = productSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
+        availability: Array.isArray(doc.data().availability) ? doc.data().availability : [doc.data().availability],
         position: doc.data().position ?? 0,
     } as Product));
     
@@ -62,7 +63,7 @@ export async function addProduct(product: NewProduct): Promise<Product> {
       preSaleSold: 0, 
       position: newPosition, // Explicitly set position
   });
-  return { id: docRef.id, ...product, restockCount: 0, preSaleSold: 0, position: newPosition };
+  return { id: docRef.id, ...product, restockCount: 0, preSaleSold: 0, position: newPosition, availability: product.availability };
 }
 
 // Function to add a product with a specific ID (for seeding)
@@ -124,5 +125,3 @@ export async function updateProductOrder(products: Product[]): Promise<void> {
     });
     await batch.commit();
 }
-
-    

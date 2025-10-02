@@ -37,10 +37,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { getProductsByAvailability } from '@/lib/services/product-service';
-import { addPurchase, getPurchasesByCedula, type NewPurchase, updatePendingPurchase } from '@/lib/services/purchase-service';
+import { addPreSalePurchase, getPurchasesByCedula, type NewPurchase, updatePendingPurchase } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { addAuditLog } from '@/lib/services/audit-service';
 
 
 type CartItem = {
@@ -88,11 +87,13 @@ export default function SelfServicePage() {
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       
-      if (item.stock <= 0) {
+      const effectiveStock = item.stock + (editingPurchase?.items.find(i => i.id === item.id)?.quantity || 0);
+
+      if (effectiveStock <= 0) {
           toast({ variant: "destructive", title: "Sin Stock", description: `${item.name} está agotado.` });
           return prevCart;
       }
-       if (existingItem && existingItem.quantity >= item.stock) {
+       if (existingItem && existingItem.quantity >= effectiveStock) {
           toast({ variant: "destructive", title: "Límite de Stock", description: `No puedes agregar más ${item.name}.` });
           return prevCart;
       }
@@ -115,9 +116,15 @@ export default function SelfServicePage() {
       }
 
       const itemToUpdate = prevCart.find(item => item.id === id);
-      if (itemToUpdate && itemToUpdate.stock < newQuantity) {
-        toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${itemToUpdate.stock} unidades de ${itemToUpdate.name}.` });
-        return prevCart;
+      if (!itemToUpdate) return prevCart;
+
+      const product = products.find(p => p.id === id);
+      const originalQuantityInCart = editingPurchase?.items.find(i => i.id === id)?.quantity || 0;
+      const availableStock = (product?.stock || 0) + originalQuantityInCart;
+
+      if (newQuantity > availableStock) {
+        toast({ variant: "destructive", title: "Límite de Stock", description: `Solo quedan ${availableStock} unidades de ${itemToUpdate.name}.` });
+        return prevCart.map(item => item.id === id ? { ...item, quantity: availableStock } : item);
       }
 
       return prevCart.map((item) =>
@@ -151,13 +158,7 @@ export default function SelfServicePage() {
     
     try {
         await updatePendingPurchase(editingPurchase.id, cart);
-        await addAuditLog({
-            userId: editingPurchase.cedula,
-            userName: `Cliente (Autogestión)`,
-            action: 'PURCHASE_EDIT',
-            details: `Cliente modificó la compra pendiente ${editingPurchase.id}.`,
-        });
-
+        
         setPaymentCode(editingPurchase.id);
         setIsPaymentModalOpen(true);
         toast({ title: "Éxito", description: "Su compra ha sido actualizada correctamente." });
@@ -182,24 +183,16 @@ export default function SelfServicePage() {
         items: cart,
         cedula,
         celular,
-        status: 'pending',
+        status: 'pre-sale',
     };
     
     try {
-        const addedPurchase = await addPurchase(newPurchaseData);
+        const addedPurchase = await addPreSalePurchase(newPurchaseData);
         setPaymentCode(addedPurchase.id);
         setIsUserInfoModalOpen(false);
         setIsPaymentModalOpen(true);
         toast({ title: "Éxito", description: "Código de pago generado. Su compra está pendiente de confirmación." });
         
-        // Add audit log for self-service purchase
-        await addAuditLog({
-          userId: cedula,
-          userName: 'Cliente (Autogestión)',
-          action: 'SELF_SERVICE_PURCHASE',
-          details: `Nueva compra de preventa #${addedPurchase.id} por ${formatCurrency(addedPurchase.total)} iniciada por C.C. ${cedula}.`,
-        });
-
     } catch (error) {
         console.error("Error creating purchase:", error);
         toast({ variant: "destructive", title: "Error en la Compra", description: (error as Error).message || "No se pudo generar el código de pago." });
@@ -266,10 +259,13 @@ export default function SelfServicePage() {
           ) : products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((product) => {
-                const isSoldOut = product.stock <= 0;
+                const isSoldOut = product.stock <= 0 && !(editingPurchase?.items.find(i => i.id === product.id));
                 const cartItem = cart.find(item => item.id === product.id);
                 const quantityInCart = cartItem ? cartItem.quantity : 0;
-                const hasReachedLimit = quantityInCart >= product.stock;
+                
+                const originalQuantityInCart = editingPurchase?.items.find(i => i.id === product.id)?.quantity || 0;
+                const availableStock = product.stock + originalQuantityInCart;
+                const hasReachedLimit = quantityInCart >= availableStock;
 
                 return (
                   <Card key={product.id} className={cn("overflow-hidden group", isSoldOut && "opacity-50")}>
@@ -424,12 +420,12 @@ export default function SelfServicePage() {
                       <TableCell>{purchase.date}</TableCell>
                       <TableCell>
                          <Badge variant={purchase.status === 'paid' || purchase.status === 'delivered' ? 'default' : 'secondary'} className={purchase.status === 'paid' || purchase.status === 'delivered' ? 'bg-green-500/20 text-green-700' : ''}>
-                            {purchase.status === 'pending' ? 'Pendiente' : purchase.status === 'paid' ? 'Pagado' : purchase.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                            {purchase.status === 'pre-sale' ? 'Preventa' : purchase.status === 'pending' ? 'Pendiente' : purchase.status === 'paid' ? 'Pagado' : purchase.status === 'delivered' ? 'Entregado' : 'Cancelado'}
                          </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(purchase.total)}</TableCell>
                        <TableCell className="text-right">
-                        {purchase.status === 'pending' && (
+                        {(purchase.status === 'pending' || purchase.status === 'pre-sale') && (
                             <Button variant="outline" size="sm" onClick={() => handleEditPurchase(purchase)}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Modificar

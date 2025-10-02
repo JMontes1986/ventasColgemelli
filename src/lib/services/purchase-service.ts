@@ -118,7 +118,7 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
           throw new Error(`Producto con ID ${purchase.items[i].id} no encontrado.`);
         }
         const productData = productDoc.data() as Product;
-        if (productData.stock < purchase.items[i].quantity) {
+        if (purchase.status !== 'pre-sale' && productData.stock < purchase.items[i].quantity) {
           throw new Error(`Stock insuficiente para ${productData.name}.`);
         }
       }
@@ -128,11 +128,13 @@ export async function addPurchase(purchase: NewPurchase): Promise<Purchase> {
       const generatedId = `CG${firstItemInitial}${formattedCount}`;
 
       // --- 3. WRITE PHASE ---
-      productDocs.forEach((productDoc, i) => {
-        const item = purchase.items[i];
-        const newStock = productDoc.data()!.stock - item.quantity;
-        transaction.update(productDoc.ref, { stock: newStock });
-      });
+      if (purchase.status !== 'pre-sale') {
+        productDocs.forEach((productDoc, i) => {
+          const item = purchase.items[i];
+          const newStock = productDoc.data()!.stock - item.quantity;
+          transaction.update(productDoc.ref, { stock: newStock });
+        });
+      }
 
       transaction.set(counterRef, { count: newCount }, { merge: true });
 
@@ -226,18 +228,19 @@ export async function cancelPurchaseAndUpdateStock(purchaseId: string): Promise<
 }
 
 
-export async function updatePendingPurchase(purchaseId: string, newCart: Omit<CartItem, 'type' | 'stock'>[]): Promise<void> {
+export async function updatePendingPurchase(purchaseId: string, newCart: Omit<CartItem, 'returned'>[]): Promise<void> {
   await runTransaction(db, async (transaction) => {
     // --- 1. READ PHASE ---
     const purchaseRef = doc(db, "purchases", purchaseId);
     const purchaseDoc = await transaction.get(purchaseRef);
 
-    if (!purchaseDoc.exists() || purchaseDoc.data().status !== 'pending') {
+    if (!purchaseDoc.exists() || (purchaseDoc.data().status !== 'pending' && purchaseDoc.data().status !== 'pre-sale')) {
       throw new Error("Compra no encontrada o ya ha sido procesada.");
     }
 
     const originalPurchase = purchaseDoc.data() as Purchase;
     const originalItems = originalPurchase.items;
+    const isPreSale = originalPurchase.id.startsWith('PV');
 
     // --- 2. CALCULATION & VALIDATION PHASE ---
     
@@ -247,45 +250,53 @@ export async function updatePendingPurchase(purchaseId: string, newCart: Omit<Ca
     
     // Calculate stock changes
     const stockChanges = new Map<string, number>();
+    const preSaleSoldChanges = new Map<string, number>();
 
-    // Items removed or quantity decreased
-    originalItemMap.forEach((origQty, id) => {
-        const newQty = newItemMap.get(id) || 0;
-        const diff = origQty - newQty;
-        if (diff > 0) {
-            stockChanges.set(id, (stockChanges.get(id) || 0) + diff); // Return stock
-        }
-    });
+    const allProductIds = new Set([...originalItemMap.keys(), ...newItemMap.keys()]);
 
-    // Items added or quantity increased
-    newItemMap.forEach((newQty, id) => {
-        const origQty = originalItemMap.get(id) || 0;
-        const diff = newQty - origQty;
-        if (diff > 0) {
-            stockChanges.set(id, (stockChanges.get(id) || 0) - diff); // Reserve stock
-        }
-    });
+    allProductIds.forEach(id => {
+      const origQty = originalItemMap.get(id) || 0;
+      const newQty = newItemMap.get(id) || 0;
+      const diff = newQty - origQty;
 
-    // Validate new stock levels
-    for (const [productId, change] of stockChanges.entries()) {
-      if (change < 0) { // Only need to check for stock reservation
-        const productRef = doc(db, "products", productId);
-        const productDoc = await transaction.get(productRef);
-        if (!productDoc.exists()) throw new Error(`Producto ${productId} no encontrado.`);
-        
-        const currentStock = productDoc.data().stock;
-        if (currentStock + change < 0) {
-          throw new Error(`Stock insuficiente para ${productDoc.data().name}.`);
+      if (diff !== 0) {
+        if (isPreSale) {
+            preSaleSoldChanges.set(id, diff);
+        } else {
+            stockChanges.set(id, -diff); // Negative because a positive diff means taking from stock
         }
       }
+    });
+
+    // Validate new stock levels if it's not a pre-sale
+    if (!isPreSale) {
+        for (const [productId, change] of stockChanges.entries()) {
+          if (change < 0) { // Only need to check for stock reservation
+            const productRef = doc(db, "products", productId);
+            const productDoc = await transaction.get(productRef);
+            if (!productDoc.exists()) throw new Error(`Producto ${productId} no encontrado.`);
+            
+            const currentStock = productDoc.data().stock;
+            if (currentStock + change < 0) {
+              throw new Error(`Stock insuficiente para ${productDoc.data().name}.`);
+            }
+          }
+        }
     }
 
     // --- 3. WRITE PHASE ---
 
-    // Apply stock changes
-    for (const [productId, change] of stockChanges.entries()) {
-      const productRef = doc(db, "products", productId);
-      transaction.update(productRef, { stock: increment(change) });
+    // Apply stock or pre-sale count changes
+    if (isPreSale) {
+        for (const [productId, change] of preSaleSoldChanges.entries()) {
+            const productRef = doc(db, "products", productId);
+            transaction.update(productRef, { preSaleSold: increment(change) });
+        }
+    } else {
+        for (const [productId, change] of stockChanges.entries()) {
+          const productRef = doc(db, "products", productId);
+          transaction.update(productRef, { stock: increment(change) });
+        }
     }
 
     // Update the purchase document
@@ -296,6 +307,13 @@ export async function updatePendingPurchase(purchaseId: string, newCart: Omit<Ca
       items: itemsToSave,
       total: newTotal,
       date: new Date().toLocaleString('es-CO'), // Update date to reflect modification time
+    });
+
+    await addAuditLog({
+      userId: originalPurchase.cedula,
+      userName: `Cliente (Autogestión)`,
+      action: 'PURCHASE_EDIT',
+      details: `Cliente modificó la compra pendiente ${purchaseId}.`,
     });
   });
 }
@@ -316,10 +334,13 @@ export async function confirmPreSaleAndUpdateStock(purchaseId: string, currentUs
         const purchaseData = purchaseDoc.data() as Purchase;
 
         // --- 2. WRITE PHASE ---
-        // Increase stock for each item in the pre-sale
+        // Increase stock and decrease pre-sale count for each item
         for (const item of purchaseData.items) {
             const productRef = doc(db, "products", item.id);
-            transaction.update(productRef, { stock: increment(item.quantity) });
+            transaction.update(productRef, { 
+                stock: increment(item.quantity),
+                preSaleSold: increment(-item.quantity)
+            });
         }
         
         // Update purchase status
