@@ -28,15 +28,19 @@ export async function getPurchases(idPrefix?: string): Promise<Purchase[]> {
 // Function to get the 5 most recent pre-sales
 export async function getRecentPreSales(): Promise<Purchase[]> {
     const purchasesCol = collection(db, 'purchases');
+    // Simplified query to avoid needing a composite index
     const q = query(purchasesCol,
         where('status', 'in', ['pre-sale', 'pre-sale-confirmed', 'paid', 'delivered', 'cancelled']),
-        orderBy('date', 'desc'),
-        limit(5)
+        limit(25) // Fetch a slightly larger batch to sort and limit client-side
     );
     const purchaseSnapshot = await getDocs(q);
     const results = purchaseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
-    // Filter client-side as Firestore doesn't support startsWith
-    return results.filter(p => p.id.startsWith('PV'));
+    
+    // Filter client-side for presales and then sort and limit
+    return results
+      .filter(p => p.id.startsWith('PV'))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
 }
 
 // Function to get a single purchase by its ID
