@@ -2,7 +2,7 @@
 "use client";
 
 import type { ModulePermission } from "@/lib/types";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuth } from "@/hooks/use-mock-auth";
 
 interface PermissionGateProps {
   requiredPermission: ModulePermission;
@@ -10,7 +10,7 @@ interface PermissionGateProps {
 }
 
 export function PermissionGate({ requiredPermission, children }: PermissionGateProps) {
-  const { hasPermission, isMounted } = useMockAuth();
+  const { hasPermission, isMounted } = useAuth();
 
   if (!isMounted) {
     return null; // or a loading skeleton

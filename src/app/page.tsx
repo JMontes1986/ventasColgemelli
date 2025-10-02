@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authenticateUser, addUser } from "@/lib/services/user-service";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuth } from "@/hooks/use-mock-auth";
 import type { NewUser, ModulePermission, UserRole } from "@/lib/types";
 import {
   Dialog,
@@ -139,29 +139,28 @@ function CreateUserForm({ onUserCreated }: { onUserCreated: () => void }) {
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login } = useMockAuth();
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [key, setKey] = useState(0); // Key to force re-fetch in auth hook
+  const [key, setKey] = useState(0); // Key to force re-render if needed
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Clear user cache to force a re-fetch from Firestore
-      sessionStorage.removeItem("all_users");
-
+      console.log(`Attempting to authenticate user: ${username}`);
       const authenticatedUser = await authenticateUser(username, password);
+      
       if (authenticatedUser) {
+        console.log("Authentication successful for:", authenticatedUser.name);
         login(authenticatedUser);
         toast({
           title: "Inicio de sesión exitoso",
           description: `¡Bienvenido de nuevo, ${authenticatedUser.name}!`,
         });
 
-        // Add audit log for successful login
         await addAuditLog({
           userId: authenticatedUser.id,
           userName: authenticatedUser.name,
@@ -175,6 +174,7 @@ export default function LoginPage() {
             router.push("/dashboard");
         }
       } else {
+        console.log(`Authentication failed for user: ${username}`);
         toast({
           variant: "destructive",
           title: "Error de autenticación",
@@ -182,7 +182,7 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Login system error:", error);
       toast({
         variant: "destructive",
         title: "Error del sistema",
@@ -194,11 +194,9 @@ export default function LoginPage() {
   };
 
   const handleUserCreation = () => {
-    // Invalidate user cache by forcing a re-render of the parent component
-    // that uses the useMockAuth hook, triggering a re-fetch.
-    // A more robust solution might involve a global state management library.
-     sessionStorage.removeItem("all_users");
-     setKey(prev => prev + 1);
+    // This function can be used to trigger a re-render or state update if necessary,
+    // but with caching removed, it's less critical.
+    setKey(prev => prev + 1);
   }
 
   return (

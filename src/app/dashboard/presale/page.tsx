@@ -28,7 +28,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
 import { addPreSalePurchase, getPurchasesByCedula, getPurchases, type NewPurchase, getRecentPreSales } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
-import { useMockAuth } from '@/hooks/use-mock-auth';
+import { useAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
@@ -76,7 +76,7 @@ export default function PreSalePage() {
   const [customerIdentifier, setCustomerIdentifier] = useState('');
   const [customerCelular, setCustomerCelular] = useState('');
   const { toast } = useToast();
-  const { currentUser } = useMockAuth();
+  const { currentUser } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
   // For confirmation dialog
@@ -568,5 +568,3 @@ export default function PreSalePage() {
     </div>
   );
 }
-
-    

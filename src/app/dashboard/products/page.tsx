@@ -39,7 +39,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { getProducts, addProduct, addProductWithId, type NewProduct, updateProduct, increaseProductStock, updateProductOrder } from "@/lib/services/product-service";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuth } from "@/hooks/use-mock-auth";
 import {
   DndContext,
   closestCenter,
@@ -250,7 +250,7 @@ function ProductForm({
 
 function RestockForm({ product, onStockUpdated }: { product: Product; onStockUpdated: (product: Product) => void; }) {
     const { toast } = useToast();
-    const { currentUser } = useMockAuth();
+    const { currentUser } = useAuth();
     const [quantity, setQuantity] = useState(1);
     const [isOpen, setIsOpen] = useState(false);
 
@@ -461,7 +461,7 @@ export default function ProductsPage() {
       }
     }
     loadProducts();
-  }, []);
+  }, [toast]);
 
   const handleProductAdded = (newProduct: Product) => {
     setProducts(prevProducts => [...prevProducts, newProduct].sort((a,b) => a.position - b.position));
@@ -545,5 +545,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-
-    

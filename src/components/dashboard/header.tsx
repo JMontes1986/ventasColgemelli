@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuth } from "@/hooks/use-mock-auth";
 import type { NavItem } from "./sidebar-nav";
 import Link from "next/link";
 import { Logo } from "../icons";
@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
 export function Header({ navItems }: { navItems: NavItem[] }) {
-  const { currentUser, isMounted, logout } = useMockAuth();
+  const { currentUser, isMounted, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   

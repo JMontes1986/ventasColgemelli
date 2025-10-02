@@ -2,7 +2,7 @@
 "use client";
 
 import { Header } from "@/components/dashboard/header";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuth } from "@/hooks/use-mock-auth";
 import type { ModulePermission } from "@/lib/types";
 import { navItems, adminNavItems } from "@/components/dashboard/sidebar-nav";
 import { useEffect, useState, useMemo } from "react";
@@ -15,7 +15,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { currentUser, isMounted } = useMockAuth();
+  const { currentUser, isMounted } = useAuth();
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
 

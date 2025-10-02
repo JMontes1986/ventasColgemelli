@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuth } from "@/hooks/use-mock-auth";
 import type { ModulePermission } from "@/lib/types";
 
 export type NavItem = {
@@ -55,7 +55,7 @@ export const adminNavItems: NavItem[] = [
 export function SidebarNav({ navItems: accessibleNavItems }: { navItems: NavItem[] }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useMockAuth();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
     logout();

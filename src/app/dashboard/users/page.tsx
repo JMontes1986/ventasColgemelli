@@ -38,7 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuth } from "@/hooks/use-mock-auth";
 import {
   Select,
   SelectContent,
@@ -162,7 +162,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { currentUser } = useMockAuth();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     async function loadUsers() {
@@ -183,7 +183,7 @@ export default function UsersPage() {
       }
     }
     loadUsers();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [toast]); // Empty dependency array ensures this runs only once on mount
 
   const handleUserAdded = (newUser: User) => {
     setUsers(prevUsers => [...prevUsers, newUser]);
@@ -247,4 +247,3 @@ export default function UsersPage() {
     </div>
   );
 }
-

@@ -26,7 +26,7 @@ import { DoorOpen, DoorClosed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { CashboxSession } from "@/lib/types";
-import { useMockAuth } from "@/hooks/use-mock-auth";
+import { useAuth } from "@/hooks/use-mock-auth";
 import { useToast } from "@/hooks/use-toast";
 import { getActiveSessionForUser, getCashboxHistory, openCashboxSession, closeCashboxSession } from "@/lib/services/cashbox-service";
 import {
@@ -48,7 +48,7 @@ export default function CashboxPage() {
     const [cashboxHistory, setCashboxHistory] = useState<CashboxSession[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
-    const { currentUser } = useMockAuth();
+    const { currentUser } = useAuth();
     const { toast } = useToast();
 
     const loadCashboxData = useCallback(async () => {
@@ -67,7 +67,7 @@ export default function CashboxPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser]);
+    }, [currentUser, toast]);
 
     useEffect(() => {
         loadCashboxData();

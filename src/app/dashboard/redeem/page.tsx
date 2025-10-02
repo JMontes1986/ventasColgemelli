@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { useMockAuth } from '@/hooks/use-mock-auth';
+import { useAuth } from '@/hooks/use-mock-auth';
 import { addAuditLog } from '@/lib/services/audit-service';
 
 const statusTranslations: Record<Purchase['status'], string> = {
@@ -40,7 +40,7 @@ const statusColors: Record<Purchase['status'], string> = {
 function RedeemPageComponent() {
     const searchParams = useSearchParams();
     const codeFromUrl = searchParams.get('code');
-    const { currentUser } = useMockAuth();
+    const { currentUser } = useAuth();
 
     const [searchCedula, setSearchCedula] = useState('');
     const [searchCelular, setSearchCelular] = useState('');
@@ -117,7 +117,7 @@ function RedeemPageComponent() {
             if (newStatus === 'pre-sale-confirmed') {
                 await confirmPreSaleAndUpdateStock(purchaseId, currentUser);
             } else {
-                await updatePurchase(purchaseId, { status: newStatus });
+                 await updatePurchase(purchaseId, { status: newStatus });
             }
 
             setSearchResults(prev => prev.map(p => p.id === purchaseId ? { ...p, status: newStatus } : p));

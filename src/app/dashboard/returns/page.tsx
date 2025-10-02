@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getReturns, addReturnAndUpdateStock } from '@/lib/services/return-service';
-import { useMockAuth } from '@/hooks/use-mock-auth';
+import { useAuth } from '@/hooks/use-mock-auth';
 import {
   Table,
   TableBody,
@@ -40,7 +40,7 @@ export default function ReturnsPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [lastReturn, setLastReturn] = useState<{ name: string; quantity: number } | null>(null);
     const { toast } = useToast();
-    const { currentUser } = useMockAuth();
+    const { currentUser } = useAuth();
 
     useEffect(() => {
         async function loadInitialData() {
@@ -64,7 +64,7 @@ export default function ReturnsPage() {
             }
         }
         loadInitialData();
-    }, []);
+    }, [toast]);
 
     const handleReturn = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -308,5 +308,3 @@ export default function ReturnsPage() {
         </div>
     );
 }
-
-    

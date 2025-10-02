@@ -3,66 +3,64 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { ModulePermission, User } from "@/lib/types";
-import { getUsers, authenticateUser } from "@/lib/services/user-service";
+import { getUsers } from "@/lib/services/user-service";
 
 const AUTH_USER_KEY = "auth_user_id";
-const USERS_CACHE_KEY = "all_users";
 
-export function useMockAuth() {
+export function useAuth() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    async function loadAuth() {
-        try {
-            const storedUserId = localStorage.getItem(AUTH_USER_KEY);
-            const cachedUsers = sessionStorage.getItem(USERS_CACHE_KEY);
-            
-            let allUsers: User[] = [];
-            if (cachedUsers) {
-                allUsers = JSON.parse(cachedUsers);
-            } else {
-                allUsers = await getUsers();
-                sessionStorage.setItem(USERS_CACHE_KEY, JSON.stringify(allUsers));
-            }
-            setUsers(allUsers);
-
-            if (storedUserId) {
-                // The stored ID is now the username, which is the doc ID
-                const user = allUsers.find(u => u.id === storedUserId);
-                setCurrentUser(user || null);
-            }
-
-        } catch (error) {
-            console.warn("Could not read auth state from localStorage or fetch users", error);
-        } finally {
-            setIsMounted(true);
+  // Function to load authentication state from localStorage
+  const loadAuth = useCallback(async () => {
+    try {
+      const storedUserId = localStorage.getItem(AUTH_USER_KEY);
+      if (storedUserId) {
+        // Fetch fresh user data on every load to prevent stale data issues.
+        // This is crucial for environments like Netlify.
+        const allUsers = await getUsers();
+        const user = allUsers.find(u => u.id === storedUserId);
+        
+        if (user) {
+          console.log("Auth hook: Found user in DB:", user.name);
+          setCurrentUser(user);
+        } else {
+          console.warn("Auth hook: User ID in storage not found in DB. Clearing storage.");
+          localStorage.removeItem(AUTH_USER_KEY);
+          setCurrentUser(null);
         }
+      }
+    } catch (error) {
+      console.warn("Could not read auth state from localStorage or fetch users.", error);
+    } finally {
+      setIsMounted(true);
     }
-    loadAuth();
   }, []);
 
+  useEffect(() => {
+    loadAuth();
+  }, [loadAuth]);
+
+  // Function to handle user login
   const login = useCallback((user: User) => {
     try {
-      // The user ID from auth is now the document ID, which is the username
       localStorage.setItem(AUTH_USER_KEY, user.id);
       setCurrentUser(user);
     } catch (error) {
       console.warn("Could not set auth state in localStorage", error);
+      // Still set the user in state for the current session
       setCurrentUser(user);
     }
   }, []);
 
+  // Function to handle user logout
   const logout = useCallback(() => {
     try {
       localStorage.removeItem(AUTH_USER_KEY);
-      sessionStorage.removeItem(USERS_CACHE_KEY); // Clear user cache on logout
-      setCurrentUser(null);
     } catch (error) {
        console.warn("Could not clear auth state from localStorage", error);
-       setCurrentUser(null);
     }
+    setCurrentUser(null);
   }, []);
 
   const hasPermission = (requiredPermission: ModulePermission) => {
@@ -74,7 +72,6 @@ export function useMockAuth() {
 
   return { 
       currentUser, 
-      users, 
       login,
       logout,
       isMounted,

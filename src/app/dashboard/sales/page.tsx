@@ -28,7 +28,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { getProductsByAvailability } from '@/lib/services/product-service';
 import { addPurchase, getPurchases, type NewPurchase, cancelPurchaseAndUpdateStock } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
-import { useMockAuth } from '@/hooks/use-mock-auth';
+import { useAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -62,7 +62,7 @@ export default function SalesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { currentUser, isMounted } = useMockAuth();
+  const { currentUser, isMounted } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const loadData = useCallback(async () => {
