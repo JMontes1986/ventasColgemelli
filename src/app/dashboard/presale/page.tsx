@@ -26,7 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, Search, ExternalLink, Printer, Download } from "lucide-react";
 import { formatCurrency, cn } from '@/lib/utils';
 import { getProducts } from '@/lib/services/product-service';
-import { addPreSalePurchase, getPurchases, getRecentPreSales, type NewPurchase, getPreSalesByCedula } from '@/lib/services/purchase-service';
+import { addPreSalePurchase, getRecentPreSales, type NewPurchase, getPreSalesByCedula, getPurchases } from '@/lib/services/purchase-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-mock-auth';
 import { Badge } from '@/components/ui/badge';
@@ -97,8 +97,8 @@ export default function PreSalePage() {
         // Optimized: Fetch only necessary data on initial load
         const [fetchedProducts, recent, all] = await Promise.all([
           getProducts(),
-          getRecentPreSales(), // Fetches only the last 5
-          getPurchases("PV") // Fetch all for the full history table
+          getRecentPreSales(),
+          getPurchases("PV")
         ]);
         setProducts(fetchedProducts);
         setRecentPreSales(recent);
@@ -567,3 +567,5 @@ export default function PreSalePage() {
     </div>
   );
 }
+
+    
