@@ -12,8 +12,7 @@ export type ModulePermission =
   | 'cashbox'
   | 'returns'
   | 'users'
-  | 'audit'
-  | 'self-service-pos';
+  | 'audit';
 
 
 export type User = {

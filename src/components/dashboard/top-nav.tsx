@@ -26,6 +26,7 @@ export function TopNav({
         <Link
           key={item.href}
           href={item.href}
+          target={item.external ? '_blank' : '_self'}
           className={cn(
             "text-sm font-medium transition-colors hover:text-primary",
             pathname === item.href ? "text-primary" : "text-muted-foreground"
