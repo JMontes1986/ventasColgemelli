@@ -1,119 +1,219 @@
-# Ventas ColGemelli - Sistema de Gestión
+# 📦 Ventas ColGemelli
 
-Este es un proyecto Next.js creado con Firebase Studio para la gestión de ventas y tickets del Colegio Gemelli.
+Aplicación web para **gestión de ventas y emisión de tickets** del Colegio Franciscano Agustín Gemelli. Construida con **Next.js + TypeScript** en el frontend y **Firebase (Auth, Firestore, Hosting/Storage, App Check)** en el backend.
 
-## Primeros Pasos
+---
 
-Para ejecutar el proyecto localmente, sigue estos pasos:
+## ✨ Características
+- Registro de **ventas** con productos, cantidades y medios de pago.
+- Emisión y validación de **tickets** (con código/QR).
+- Búsqueda y filtros por fecha, estado o usuario.
+- Roles básicos de usuario (**admin / operador**).
+- UI con **Tailwind CSS**.
+- Preparado para despliegue en **Firebase Hosting** o **Netlify**.
 
-1.  **Instalar dependencias:**
-    Abre una terminal en la raíz del proyecto y ejecuta:
-    ```bash
-    npm install
-    ```
+---
 
-bash
-Copiar código
-npm run dev
-Abre tu navegador en http://localhost:3000.
+## 🧱 Arquitectura
+- **Next.js (TypeScript):** Rutas, páginas y componentes UI.
+- **Firebase:**
+  - **Auth:** Autenticación de usuarios.
+  - **Firestore:** Base de datos NoSQL.
+  - **Storage:** Archivos y comprobantes (opcional).
+  - **App Check:** Protección contra abuso.
+- **Reglas de seguridad:** Definidas en `firestore.rules`.
 
-🔑 Variables de entorno
-Crea un archivo .env.local en la raíz del proyecto con las siguientes variables (ejemplo):
+---
 
-env
-Copiar código
-NEXT_PUBLIC_FIREBASE_API_KEY=xxxxxxxxxxxxxxxxxxxx
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=xxxxxxxx.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxxxxxxx
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=xxxxxxxx.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxxxxxxx
-NEXT_PUBLIC_FIREBASE_APP_ID=xxxxxxxx
-⚠️ Nota: Nunca subas este archivo a GitHub. Contiene credenciales sensibles.
-
-📂 Estructura del proyecto
-lua
-Copiar código
+## 📁 Estructura del proyecto
+```bash
 ├── .firebaserc
-├── firebase.json
-├── firestore.rules
 ├── apphosting.yaml
+├── firestore.rules
 ├── next.config.ts
 ├── package.json
-├── tsconfig.json
 ├── tailwind.config.ts
-├── postcss.config.mjs
-├── src/
-│   ├── components/
-│   ├── pages/  (o app/ según la versión de Next.js)
-│   ├── styles/
-│   └── utils/
-firestore.rules: reglas de seguridad para Firestore.
+├── tsconfig.json
+└── src/
+    ├── components/
+    ├── pages/    # o app/ según versión de Next.js
+    ├── styles/
+    └── utils/
+```
 
-apphosting.yaml: configuración de hosting en Firebase.
+---
 
-.firebaserc: configuración del proyecto Firebase.
+## ⚙️ Requisitos
+- **Node.js** 18+ (LTS recomendado)
+- **npm** o **pnpm**
+- **Proyecto Firebase** con Firestore habilitado
 
-src/: contiene componentes, páginas y estilos.
+---
 
-🚀 Despliegue
-Autentícate en Firebase:
+## 🔐 Variables de entorno
+Crea un archivo `.env.local` en la raíz:
 
-bash
-Copiar código
-firebase login
-Compila la aplicación:
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=xxxx
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=xxxx.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxxx
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=xxxx.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxxx
+NEXT_PUBLIC_FIREBASE_APP_ID=xxxx
+```
 
-bash
-Copiar código
-npm run build
-Despliega en Firebase Hosting:
+> ⚠️ **Importante:** No subas este archivo al repositorio.
 
-bash
-Copiar código
-firebase deploy
-🔒 Reglas de Firestore y seguridad
-El archivo firestore.rules define las reglas de acceso a la base de datos.
-Ejemplo recomendado:
+---
 
-txt
-Copiar código
+## 🚀 Primeros pasos
+```bash
+# Instalar dependencias
+npm install
+
+# Ejecutar en desarrollo
+npm run dev
+
+# Abrir en navegador
+http://localhost:3000
+```
+
+---
+
+## 🗃️ Modelo de datos sugerido
+
+### `ventas/{ventaId}`
+- `fecha`: Timestamp
+- `vendedorId`: string
+- `items`: array `{ productoId, nombre, cantidad, precioUnitario, subtotal }`
+- `total`: number
+- `medioPago`: string
+- `estado`: `registrada | anulada`
+- `ticketId`: string
+
+### `tickets/{ticketId}`
+- `ventaId`: string
+- `codigo`: string | QR
+- `estado`: `emitido | validado | anulado`
+- `emitidoEn`: Timestamp
+- `validadoEn`: Timestamp
+
+### `productos/{productoId}`
+- `nombre`: string
+- `precio`: number
+- `categoria`: string
+- `activo`: boolean
+- `stock`: number
+
+### `usuarios/{uid}`
+- `displayName`: string
+- `role`: `admin | operador`
+- `activo`: boolean
+
+---
+
+## 🔒 Reglas de seguridad Firestore (ejemplo)
+```txt
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    match /usuarios/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
     match /ventas/{docId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role in ['admin','operador'];
+    }
+
+    match /tickets/{docId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role in ['admin','operador'];
+      allow delete: if request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /productos/{docId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }
-Ajusta las reglas según los roles y niveles de acceso de tu institución.
+```
 
-🤝 Contribuciones
-Haz un fork del proyecto.
+---
 
-Crea una rama con tu funcionalidad:
+## 🧪 Scripts de npm
+```jsonc
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  }
+}
+```
 
-bash
-Copiar código
-git checkout -b feature/nueva-funcionalidad
-Haz commit de tus cambios:
+---
 
-bash
-Copiar código
-git commit -m "Agregada nueva funcionalidad"
-Sube la rama:
+## ☁️ Despliegue
 
-bash
-Copiar código
-git push origin feature/nueva-funcionalidad
-Abre un Pull Request.
+### Firebase Hosting
+```bash
+firebase login
+npm run build
+firebase deploy
+```
 
-📜 Licencia
-Este proyecto se distribuye bajo la licencia MIT.
-Consulta el archivo LICENSE para más detalles.
+### Netlify
+1. Conectar repositorio.
+2. **Build command:** `npm run build`
+3. **Publish directory:** `.next`
 
-📧 Contacto
-Autor: Julián Montes
+---
 
-GitHub: JMontes1986
+## 📸 Capturas de pantalla
 
-Colegio Franciscano Agustín Gemelli – Manizales
+> Agrega tus imágenes en `/docs/screenshots/` y actualiza las rutas:
+
+- Pantalla de inicio
+  ![Inicio](docs/screenshots/inicio.png)
+
+- Panel de ventas
+  ![Panel de ventas](docs/screenshots/panel-ventas.png)
+
+- Emisión de ticket
+  ![Ticket](docs/screenshots/ticket.png)
+
+---
+
+## 🐛 Solución de problemas
+- **Pantalla en blanco:** revisa variables de entorno.
+- **PERMISSION_DENIED:** revisa `firestore.rules` y roles de usuario.
+- **Límites Firestore:** usa paginación e índices compuestos.
+
+---
+
+## 🤝 Contribuir
+1. Haz un fork.
+2. Crea una rama:
+   ```bash
+   git checkout -b feature/nueva-funcionalidad
+   ```
+3. Envía un PR.
+
+---
+
+## 📄 Licencia
+MIT
+
+---
+
+## 📫 Contacto
+**Autor:** Julián Montes — Colegio Franciscano Agustín Gemelli (Manizales
